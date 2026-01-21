@@ -14,6 +14,7 @@ import {
   Banknote,
   Briefcase,
   ShieldAlert,
+  Target,
 } from "lucide-react";
 import { Job } from "@/lib/types";
 
@@ -220,6 +221,13 @@ export default function JobCard({
                 <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-blue-50 text-blue-700 border border-blue-100 flex items-center gap-1">
                   <Zap size={10} />
                   Simplifiée
+                </span>
+              )}
+
+              {job.isHighMatch && (
+                <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-emerald-50 text-emerald-700 border border-emerald-100 flex items-center gap-1">
+                  <Target size={10} />
+                  Top Match
                 </span>
               )}
             </div>

@@ -18,16 +18,25 @@ export interface CompanyAnalysis {
   createdAt: Date;
 }
 
+export interface LocationAnalysis {
+  _id?: string;
+  rawLocation: string;
+  country: string;
+  createdAt: Date;
+}
+
 export interface Job {
   id: string; // Map from _id in DB
   createdAt: Date;
   title: string | null;
   company: string | null;
   location: string | null;
+  country?: string | null; // Pays normalisé
   workMode?: "remote" | "hybrid" | "on-site" | null;
   salary?: string | null;
   isActiveRecruiting?: boolean;
   isEasyApply?: boolean;
+  isHighMatch?: boolean; // Correspondance élevée
   url: string;
   logoUrl?: string | null; // URL du logo de l'entreprise
   rawString?: string;
