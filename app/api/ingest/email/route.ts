@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { parseEmail } from "@/server/email-parser.service";
 import { ingestJob } from "@/server/jobs.service";
+import { resolveCompanyAnalyses } from "@/server/ai.service";
 import { getDb } from "@/lib/mongo";
 import fs from "fs/promises";
 import path from "path";
@@ -49,10 +50,21 @@ export async function POST(req: Request) {
 
     console.log(`[Email Ingest] Strategy: ${parseResult.source}, Found ${jobs.length} jobs`);
 
+    // 4.5 Analyse IA des entreprises (Batch)
+    const uniqueCompanies = jobs.map(j => j.company);
+    const analysesMap = await resolveCompanyAnalyses(uniqueCompanies);
+
     // 5. Boucle d'ingestion
     const ingestedIds = [];
     
     for (const job of jobs) {
+      // Enrichissement AI
+      if (job.company && analysesMap.has(job.company)) {
+        // On cast ou on modifie ParsedJob pour accepter aiAnalysis (optionnel, mais ingestJob prend Partial<Job>)
+        // TypeScript est flexible ici car on passe l'objet à ingestJob qui attend Partial<Job>
+        (job as any).aiAnalysis = analysesMap.get(job.company);
+      }
+
       // On enrichit avec le messageId si l'URL est générée (fallback)
       if (!job.url) {
         job.url = `https://missing-url.com/${messageId}-${Date.now()}`;

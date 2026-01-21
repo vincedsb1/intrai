@@ -25,10 +25,10 @@ export default function Header() {
       <div className="max-w-3xl mx-auto px-4 h-16 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center text-white font-bold shadow-md">
-            J
+            I
           </div>
           <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600 hidden sm:block">
-            intrai <span className="text-gray-300 text-sm font-light">v1</span>
+            intrai
           </h1>
         </div>
 

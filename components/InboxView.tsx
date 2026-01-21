@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { CheckCircle, Trash2, Search, X } from "lucide-react";
 import JobCard from "./JobCard";
+import BlacklistModal from "./BlacklistModal";
 import AiDetectiveModal from "./AiDetectiveModal";
 import { Job, JobStatus } from "@/lib/types";
 
@@ -25,6 +26,10 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
   });
   const [analyzingJobId, setAnalyzingJobId] = useState<string | null>(null);
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
+  
+  // Blacklist Modal State
+  const [isBlacklistModalOpen, setIsBlacklistModalOpen] = useState(false);
+  const [blacklistTerm, setBlacklistTerm] = useState("");
 
   // Filtre de base: INBOX et pas FILTERED
   const baseInboxJobs = jobs.filter(
@@ -130,22 +135,33 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
     setIsAiModalOpen(true);
   };
 
-  const handleBanAuthor = async (company: string) => {
+  const openBlacklistModal = (company: string) => {
+    setBlacklistTerm(company);
+    setIsBlacklistModalOpen(true);
+  };
+
+  const handleBlacklistConfirm = async (term: string) => {
     try {
+      // On utilise l'endpoint existant qui fait exactement le job : 
+      // Ajout blacklist + Update status FILTERED sur les jobs matchant ce terme
+      // Note: L'endpoint attend { company: term }
       const res = await fetch("/api/ai/ban-author", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ company }),
+        body: JSON.stringify({ company: term }),
       });
 
-      if (!res.ok) throw new Error("Failed to ban author");
+      if (!res.ok) throw new Error("Failed to blacklist");
 
-      // Optimistic update: remove jobs from this company from the view
-      setJobs(jobs.filter((j) => j.company !== company));
-      console.log("Banned author:", company);
+      // Optimistic update
+      setJobs(jobs.filter((j) => j.company !== term)); // Simple check exact
+      // Idéalement on devrait filtrer plus large (includes) comme le backend, 
+      // mais pour l'instant c'est suffisant pour l'UX immédiate.
+      
+      console.log("Blacklisted:", term);
     } catch (error) {
-      console.error("Error banning author:", error);
-      alert("Erreur lors du bannissement");
+      console.error("Error blacklisting:", error);
+      alert("Erreur lors du filtrage");
     }
   };
 
@@ -236,6 +252,7 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
                     isVisited={visitedIds.has(job.id)}
                     onVisit={handleVisit}
                     onUnvisit={handleUnvisit}
+                    onBlacklist={openBlacklistModal}
                     onSave={(id) => handleMoveJob(id, "SAVED")}
                     onTrash={(id) => handleMoveJob(id, "TRASH")}
                     onAnalyze={handleAnalyze}
@@ -273,7 +290,15 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
         isOpen={isAiModalOpen}
         onClose={() => setIsAiModalOpen(false)}
         job={currentAnalyzingJob}
-        onBan={handleBanAuthor}
+        onBan={(company) => handleBlacklistConfirm(company)}
+      />
+
+      {/* Blacklist Modal */}
+      <BlacklistModal
+        isOpen={isBlacklistModalOpen}
+        onClose={() => setIsBlacklistModalOpen(false)}
+        initialTerm={blacklistTerm}
+        onConfirm={handleBlacklistConfirm}
       />
     </div>
   );
