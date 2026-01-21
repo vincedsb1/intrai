@@ -209,6 +209,12 @@ export default function JobCard({
               <span className="text-gray-300">•</span>
               <span className="truncate">
                 {job.location || "Localisation inconnue"}
+                {job.country && job.country !== job.location && (
+                  <>
+                    <span className="text-gray-300 mx-1">,</span>
+                    <span className="text-gray-500 font-medium">{job.country}</span>
+                  </>
+                )}
               </span>
             </div>
 
