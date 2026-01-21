@@ -36,6 +36,28 @@ const StatusBadge = ({ category }: { category: Job["category"] }) => {
   return null;
 };
 
+const WorkModeBadge = ({ workMode }: { workMode?: Job["workMode"] }) => {
+  if (!workMode) return null;
+
+  let badgeStyle = "bg-gray-100 text-gray-600 border-gray-200";
+  let badgeLabel = "Sur site";
+
+  if (workMode === "remote") {
+    badgeStyle = "bg-indigo-50 text-indigo-700 border-indigo-100";
+    badgeLabel = "À distance";
+  } else if (workMode === "hybrid") {
+    badgeStyle = "bg-purple-50 text-purple-700 border-purple-100";
+    badgeLabel = "Hybride";
+  }
+
+  return (
+    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium flex items-center gap-1 border ${badgeStyle}`}>
+      <Briefcase size={10} />
+      {badgeLabel}
+    </span>
+  );
+};
+
 export default function JobCard({
   job,
   isVisited = false,
@@ -192,16 +214,7 @@ export default function JobCard({
 
             {/* Métadonnées additionnelles */}
             <div className="flex flex-wrap gap-2 mt-2">
-              {job.workMode && (
-                <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium flex items-center gap-1 border ${
-                  job.workMode === 'remote' ? 'bg-indigo-50 text-indigo-700 border-indigo-100' :
-                  job.workMode === 'hybrid' ? 'bg-purple-50 text-purple-700 border-purple-100' :
-                  'bg-gray-100 text-gray-600 border-gray-200'
-                }`}>
-                  <Briefcase size={10} />
-                  {job.workMode === 'remote' ? 'À distance' : job.workMode === 'hybrid' ? 'Hybride' : 'Sur site'}
-                </span>
-              )}
+              <WorkModeBadge workMode={job.workMode} />
               
               {job.salary && (
                 <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-green-50 text-green-700 border border-green-100 flex items-center gap-1">
