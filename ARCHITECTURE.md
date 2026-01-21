@@ -8,6 +8,13 @@
 App de tri d’offres : “Visualiser -> Cliquer -> Décider -> Archiver”.
 Une seule liste Inbox (flux unique), et des vues secondaires : Traitées (Saved/Trash), Filtrés, Réglages.
 
+## Status Actuel
+- **Phase 1 (Bootstrap):** Terminée.
+- **Phase 2 (UI):** Terminée. Maquette interactive OK.
+- **Phase 3 (MongoDB):** Terminée. Connexion VPS établie.
+- **Phase 4 (Backend):** Terminée. Ingestion multi-job LinkedIn, extraction métadonnées, persistence.
+- **Phase 5 (Polishing & New Features):** EN COURS. Prochaines étapes : Persistance de l'état "Vu", Recherche, Auth.
+
 ## Découpage (monorepo unique)
 - Next.js App Router
 - UI: composants React + Tailwind v4.1
@@ -15,7 +22,7 @@ Une seule liste Inbox (flux unique), et des vues secondaires : Traitées (Saved/
 - API: Next Route Handlers sous `/app/api/**`
 
 ## Dossiers proposés
-- `/app` : routes & pages (App Router)
+- `/app` : routes & pages (App Router). `page.tsx` redirige vers `/inbox`.
 - `/app/(tabs)` : layout + vues Inbox/Traitées/Filtrés/Réglages
 - `/components` : composants UI (JobCard, TabsNav, Modal, Badges, Inputs)
 - `/lib` : db (mongo), validation, helpers, constantes
@@ -40,7 +47,8 @@ Une seule liste Inbox (flux unique), et des vues secondaires : Traitées (Saved/
 - POST /api/jobs/:id/restore
 - POST /api/jobs/bulk-clean-visited (optionnel si visited persistant)
 - GET/PATCH /api/settings (whitelist, blacklist)
-- POST /api/ingest/webhook (ingestion + tri)
+- POST /api/ingest/webhook (ingestion JSON structuré)
+- POST /api/ingest/email (ingestion Email CloudMailin Multipart)
 - POST /api/ai/analyze-author (AI Detective)
 
 ## Observabilité minimale

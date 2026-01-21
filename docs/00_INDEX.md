@@ -19,6 +19,7 @@ Construire un “Hub de tri” pour offres d’emploi (**intrai**) : un flux uni
 13. `/docs/12_CONVENTIONS_DEV.md`
 14. `/docs/13_DOCUMENTATION_WORKFLOW.md`
 15. `/docs/14_BACKLOG.md`
+16. `/docs/15_INGESTION_EMAIL_CLOUDMAILIN.md`
 
 ## Règles Techniques & Bonnes Pratiques (`/docs/rules/`)
 Ces documents définissent les standards de code pour chaque technologie :

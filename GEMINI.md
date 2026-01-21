@@ -1,5 +1,10 @@
 # GEMINI.md - Context & Instructions
 
+## Règles Opérationnelles (Strictes)
+*   **Langue :** Toujours répondre en **Français**.
+*   **Git :** Ne JAMAIS effectuer de `commit` ou `push` sans demande explicite de l'utilisateur.
+*   **Logs :** Ne JAMAIS supprimer de fichiers de logs sans demande explicite.
+
 ## Project Overview
 **Name:** intrai (Job Aggregator & Single-Stream Hub)
 **Purpose:** A streamlined web application for managing job offers. It features a "Single Stream" inbox, quick decision-making workflows (Save/Trash), automated filtering (Whitelist/Blacklist), and AI-powered author analysis ("AI Detective").
