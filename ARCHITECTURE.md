@@ -9,12 +9,9 @@ App de tri d’offres : “Visualiser -> Cliquer -> Décider -> Archiver”.
 Une seule liste Inbox (flux unique), et des vues secondaires : Traitées (Saved/Trash), Filtrés, Réglages.
 
 ## Status Actuel
-- **Phase 1 (Bootstrap):** Terminée.
-- **Phase 2 (UI):** Terminée. Maquette interactive OK.
-- **Phase 3 (MongoDB):** Terminée. Connexion VPS établie.
-- **Phase 4 (Backend):** Terminée. Ingestion multi-job LinkedIn, extraction métadonnées, persistence.
-- **Phase 5 (AI Batch Analysis):** Terminée. Analyse proactive des entreprises à l'ingestion.
-- **Phase 6 (Polishing & Deploy):** EN COURS. Prochaines étapes : Auth, Déploiement Vercel final.
+- **Phase 1-5:** Terminées. Ingestion, Parsing, AI Batch, UI v2.
+- **Phase 6 (Location Normalization):** Terminée. Filtre Pays dynamique opérationnel.
+- **Phase 7 (Polishing & Deploy):** EN COURS. Prochaines étapes : Auth, Déploiement Vercel final.
 
 ## Découpage (monorepo unique)
 - Next.js App Router

@@ -9,6 +9,7 @@ export interface ParsedJob {
   salary: string | null;
   isActiveRecruiting: boolean;
   isEasyApply: boolean;
+  isHighMatch: boolean;
   logoUrl: string | null;
   rawString: string;
   parserGrade: "A" | "B" | "C";
@@ -66,6 +67,7 @@ export function parseEmail(
       salary: null,
       isActiveRecruiting: false,
       isEasyApply: false,
+      isHighMatch: false,
       logoUrl: null,
       rawString,
       parserGrade
@@ -151,18 +153,15 @@ function parseLinkedInHTML(html: string): ParsedJob[] {
       let workMode: "remote" | "hybrid" | "on-site" | null = null;
       let isActiveRecruiting = false;
       let isEasyApply = false;
+      let isHighMatch = false;
       let salary = null;
 
       // 1. On isole la partie après le "·" (séparateur Company / Reste)
       let metaString = fullText;
       if (fullText.includes("·")) {
-        // On prend tout ce qui est après le premier "·" pour éviter de couper un nom de boite qui contiendrait un point médian par erreur,
-        // mais le plus sûr est de splitter sur le premier.
         const parts = fullText.split("·");
-        // On rejoin le reste au cas où il y aurait d'autres "·" dans le lieu
         metaString = parts.slice(1).join("·").trim();
       } else if (company && company !== "Inconnu" && fullText.startsWith(company)) {
-        // Fallback: si pas de "·", on enlève le nom de la boite
         metaString = fullText.substring(company.length).trim();
       }
 
@@ -174,6 +173,10 @@ function parseLinkedInHTML(html: string): ParsedJob[] {
       if (metaString.includes("Candidature simplifiée")) {
         isEasyApply = true;
         metaString = metaString.replace("Candidature simplifiée", "").trim();
+      }
+      if (metaString.includes("Correspondance des expériences élevée") || metaString.includes("High profile match")) {
+        isHighMatch = true;
+        metaString = metaString.replace("Correspondance des expériences élevée", "").replace("High profile match", "").trim();
       }
 
       // 3. Extraction Mode de travail (Entre parenthèses)
@@ -213,6 +216,7 @@ function parseLinkedInHTML(html: string): ParsedJob[] {
           salary,
           isActiveRecruiting,
           isEasyApply,
+          isHighMatch,
           logoUrl,
           rawString: fullText,
           parserGrade: "A"
