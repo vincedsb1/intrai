@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { CheckCircle, Trash2, Search, X, Briefcase, Zap, Globe } from "lucide-react";
 import JobCard from "./JobCard";
 import BlacklistModal from "./BlacklistModal";
@@ -12,12 +13,58 @@ interface InboxViewProps {
 }
 
 export default function InboxView({ initialJobs }: InboxViewProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
   const [jobs, setJobs] = useState<Job[]>(initialJobs);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filterWorkMode, setFilterWorkMode] = useState<"all" | "remote" | "hybrid" | "on-site">("all");
-  const [filterEasyApply, setFilterEasyApply] = useState(false);
-  const [filterCountry, setFilterCountry] = useState("all");
   
+  // Initialisation depuis URL
+  const [searchQuery, setSearchQuery] = useState(searchParams.get("q") || "");
+  const [filterWorkMode, setFilterWorkMode] = useState<"all" | "remote" | "hybrid" | "on-site">(
+    (searchParams.get("mode") as any) || "all"
+  );
+  const [filterEasyApply, setFilterEasyApply] = useState(
+    searchParams.get("easy") === "true"
+  );
+  const [filterCountry, setFilterCountry] = useState(
+    searchParams.get("country") || "all"
+  );
+  
+  // Fonction de mise à jour URL
+  const updateUrlParams = (key: string, value: string | null) => {
+    const current = new URLSearchParams(Array.from(searchParams.entries()));
+    if (!value || value === "all" || value === "false") {
+      current.delete(key);
+    } else {
+      current.set(key, value);
+    }
+    const search = current.toString();
+    const query = search ? `?${search}` : "";
+    router.replace(`${pathname}${query}`, { scroll: false });
+  };
+
+  // Handlers avec synchro URL
+  const handleSearchChange = (val: string) => {
+    setSearchQuery(val);
+    updateUrlParams("q", val);
+  };
+
+  const handleModeChange = (val: "all" | "remote" | "hybrid" | "on-site") => {
+    setFilterWorkMode(val);
+    updateUrlParams("mode", val);
+  };
+
+  const handleEasyChange = (val: boolean) => {
+    setFilterEasyApply(val);
+    updateUrlParams("easy", val ? "true" : "false");
+  };
+
+  const handleCountryChange = (val: string) => {
+    setFilterCountry(val);
+    updateUrlParams("country", val);
+  };
+
   const [visitedIds, setVisitedIds] = useState<Set<string>>(() => {
     // Initialisation depuis les données serveur
     const initialVisited = new Set<string>();
@@ -34,6 +81,11 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
   // Blacklist Modal State
   const [isBlacklistModalOpen, setIsBlacklistModalOpen] = useState(false);
   const [blacklistTerm, setBlacklistTerm] = useState("");
+
+  // Toasts State
+  const [showBulkCleanToast, setShowBulkCleanToast] = useState(true);
+  const [lastTrashedJob, setLastTrashedJob] = useState<Job | null>(null);
+  const [showUndoToast, setShowUndoToast] = useState(false);
 
   // Filtre de base: INBOX et pas FILTERED
   const baseInboxJobs = jobs.filter(
@@ -116,6 +168,17 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
 
 
   const handleMoveJob = async (id: string, newStatus: JobStatus) => {
+    // Gestion Undo pour Trash
+    if (newStatus === "TRASH") {
+      const jobToTrash = jobs.find((j) => j.id === id);
+      if (jobToTrash) {
+        setLastTrashedJob(jobToTrash);
+        setShowUndoToast(true);
+        // Timer pour masquer le toast (on garde la ref du timer pour clear si besoin, mais ici simple)
+        setTimeout(() => setShowUndoToast(false), 5000);
+      }
+    }
+
     try {
       // 1. Appel API pour persister
       const res = await fetch(`/api/jobs/${id}`, {
@@ -131,6 +194,29 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
     } catch (error) {
       console.error("Error moving job:", error);
       alert("Erreur lors de la mise à jour");
+    }
+  };
+
+  const handleUndoTrash = async () => {
+    if (!lastTrashedJob) return;
+
+    const jobToRestore = lastTrashedJob;
+    setShowUndoToast(false);
+    setLastTrashedJob(null);
+
+    // Optimistic restore
+    setJobs((prev) => [jobToRestore, ...prev]); // On le remet en haut ou on essaie de garder l'ordre? En haut c'est bien pour le voir.
+
+    try {
+      await fetch(`/api/jobs/${jobToRestore.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "INBOX" }),
+      });
+    } catch (error) {
+      console.error("Error restoring job:", error);
+      // Rollback optimistic si erreur
+      setJobs((prev) => prev.filter((j) => j.id !== jobToRestore.id));
     }
   };
 
@@ -239,11 +325,11 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
           placeholder="Rechercher un poste ou une entreprise..."
           className="block w-full pl-10 pr-10 py-2.5 bg-white border border-gray-200 rounded-xl text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm"
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={(e) => handleSearchChange(e.target.value)}
         />
         {searchQuery && (
           <button
-            onClick={() => setSearchQuery("")}
+            onClick={() => handleSearchChange("")}
             className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
           >
             <X size={16} />
@@ -262,7 +348,7 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
           ].map((mode) => (
             <button
               key={mode.id}
-              onClick={() => setFilterWorkMode(mode.id as any)}
+              onClick={() => handleModeChange(mode.id as any)}
               className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
                 filterWorkMode === mode.id
                   ? "bg-white text-gray-900 shadow-sm"
@@ -275,7 +361,7 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
         </div>
 
         <button
-          onClick={() => setFilterEasyApply(!filterEasyApply)}
+          onClick={() => handleEasyChange(!filterEasyApply)}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
             filterEasyApply
               ? "bg-blue-50 border-blue-200 text-blue-700"
@@ -293,7 +379,7 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
           </div>
           <select
             value={filterCountry}
-            onChange={(e) => setFilterCountry(e.target.value)}
+            onChange={(e) => handleCountryChange(e.target.value)}
             className="pl-8 pr-8 py-1.5 rounded-lg text-xs font-medium border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer appearance-none"
           >
             <option value="all">Tous les pays</option>
@@ -347,26 +433,66 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
         </div>
       )}
 
-      {/* Floating Action Button (FAB) for Bulk Clean */}
-      {visitedCount > 0 && (
-        <div className="fixed bottom-6 left-0 right-0 z-20 flex justify-center px-4 pointer-events-none">
-          <button
-            onClick={handleBulkClean}
-            className="pointer-events-auto group flex items-center bg-gray-900 hover:bg-black text-white px-6 py-3.5 rounded-full shadow-xl transition-all transform hover:scale-105 active:scale-95 cursor-pointer"
-          >
-            <Trash2
-              size={18}
-              className="mr-2.5 text-gray-400 group-hover:text-white transition-colors"
-            />
-            <div className="text-sm font-medium">
-              Nettoyer les visités{" "}
-              <span className="bg-gray-700 ml-1 px-1.5 py-0.5 rounded text-xs">
-                {visitedCount}
+      {/* TOASTS STACK */}
+      <div className="fixed bottom-8 left-0 right-0 z-50 flex flex-col items-center gap-3 px-4 pointer-events-none">
+        
+        {/* Undo Trash Toast */}
+        {showUndoToast && lastTrashedJob && (
+          <div className="pointer-events-auto flex items-center bg-gray-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl border border-gray-800 animate-in slide-in-from-bottom-10 fade-in duration-300 min-w-[300px] justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-gray-800 rounded-lg flex items-center justify-center text-red-400">
+                <Trash2 size={16} />
+              </div>
+              <span className="text-sm font-medium">Annonce supprimée</span>
+            </div>
+            <div className="flex items-center gap-4 ml-6">
+              <button 
+                onClick={handleUndoTrash}
+                className="text-xs font-bold text-blue-400 hover:text-blue-300 transition-colors uppercase tracking-widest"
+              >
+                Annuler
+              </button>
+              <div className="w-[1px] h-4 bg-gray-700"></div>
+              <button 
+                onClick={() => setShowUndoToast(false)}
+                className="text-gray-500 hover:text-white transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Bulk Clean Toast */}
+        {visitedCount > 0 && showBulkCleanToast && (
+          <div className="pointer-events-auto flex items-center bg-gray-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl border border-gray-800 animate-in slide-in-from-bottom-10 fade-in duration-300 min-w-[300px] justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-gray-800 rounded-lg flex items-center justify-center text-blue-400">
+                <CheckCircle size={16} />
+              </div>
+              <span className="text-sm font-medium">
+                {visitedCount} offre{visitedCount > 1 ? 's' : ''} visitée{visitedCount > 1 ? 's' : ''}
               </span>
             </div>
-          </button>
-        </div>
-      )}
+            <div className="flex items-center gap-4 ml-6">
+              <button
+                onClick={handleBulkClean}
+                className="text-xs font-bold text-blue-400 hover:text-blue-300 transition-colors uppercase tracking-widest"
+              >
+                Tout nettoyer
+              </button>
+              <div className="w-[1px] h-4 bg-gray-700"></div>
+              <button
+                onClick={() => setShowBulkCleanToast(false)}
+                className="text-gray-500 hover:text-white transition-colors"
+                title="Masquer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* AI Detective Modal */}
       <AiDetectiveModal
