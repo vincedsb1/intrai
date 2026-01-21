@@ -1,4 +1,4 @@
-# UI Map & règles d’affichage (source maquette)
+# UI Map & règles d’affichage
 
 ## Navigation principale (Tabs)
 - Inbox
@@ -6,25 +6,27 @@
 - Filtrés
 - Réglages
 
-La structure et le style sont alignés avec la maquette fournie. :contentReference[oaicite:10]{index=10}
+## Inbox (Vue Principale)
+- **Groupement** : Les offres sont groupées par lot d'ingestion (Date + Heure) pour visualiser les arrivées récentes.
+- **Filtres** :
+  - **Recherche** : Titre ou Entreprise.
+  - **Pays** : Dropdown dynamique (basé sur les offres visibles).
+  - **Mode** : Tous / À distance / Hybride / Sur site.
+  - **Easy Apply** : Toggle pour candidatures simplifiées.
+- **Persistance** : Les filtres sont conservés dans l'URL (`?q=...&mode=remote`).
 
-## Inbox
-- Liste unique verticale
-- Filtre data: `status=INBOX` ET `category != FILTERED`
-- Visité: si l’utilisateur clique (ouvre lien), la carte devient grisée/opacité réduite
-- CTA global: “Nettoyer les visités” (FAB), envoie vers TRASH tous les INBOX visités
+## JobCard (Composant)
+- **Layout** : Logo à gauche, Titre/Entreprise au centre, Actions en haut à droite.
+- **Badges** :
+  - Métadonnées : Salaire, Mode de travail, Recrutement actif (🔥), Candidature simplifiée (⚡), Top Match (🎯).
+  - Avertissement IA : Badge rouge en bas de carte si ESN/Plateforme détectée.
+- **Actions Rapides** :
+  - 🛡️ **Filtrer** : Ouvre une modale pour blacklister l'entreprise.
+  - 🗑️ **Trash** : Supprime l'offre (avec Toaster d'annulation 5s).
+  - 🔖 **Save** : Sauvegarde l'offre.
+  - 👁️ **Vu/Non-vu** : Toggle manuel de l'état visité.
+- **Clic** : Ouvre l'offre dans un nouvel onglet.
 
-## Traitées
-- Sous-tabs: SAVED et TRASH
-- Chaque sous-tab liste les jobs par status
-- Pas d’actions Save/Trash sur ces cartes (view-only)
-
-## Filtrés
-- Liste: `category=FILTERED`
-- Sur chaque carte: bouton “Repêcher” => restore vers Inbox + category=EXPLORE
-- Bandeau explicatif “Mur de Protection” (maquette)
-
-## Réglages
-- 2 sections:
-  - Whitelist (Cibles): liste + chips supprimables + input ajout
-  - Blacklist (Exclusions): idem
+## Toasters
+- **Undo Trash** : Apparaît 5s après suppression. Permet d'annuler.
+- **Bulk Clean** : Permet de supprimer toutes les offres visitées d'un coup. Masquable.

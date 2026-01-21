@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { CheckCircle, Trash2, Search, X, Briefcase, Zap, Globe } from "lucide-react";
+import { CheckCircle, Trash2, Search, X, Briefcase, Zap, Globe, FilterX } from "lucide-react";
 import JobCard from "./JobCard";
 import BlacklistModal from "./BlacklistModal";
 import AiDetectiveModal from "./AiDetectiveModal";
@@ -65,6 +65,20 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
     updateUrlParams("country", val);
   };
 
+  const handleClearFilters = () => {
+    setSearchQuery("");
+    setFilterWorkMode("all");
+    setFilterEasyApply(false);
+    setFilterCountry("all");
+    router.replace(pathname, { scroll: false });
+  };
+
+  const isAnyFilterActive = 
+    searchQuery !== "" || 
+    filterWorkMode !== "all" || 
+    filterEasyApply || 
+    filterCountry !== "all";
+
   const [visitedIds, setVisitedIds] = useState<Set<string>>(() => {
     // Initialisation depuis les données serveur
     const initialVisited = new Set<string>();
@@ -93,7 +107,7 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
   );
 
   // Extraction dynamique des pays
-  const availableCountries = Array.from(
+  const availableCountries: string[] = Array.from(
     new Set(baseInboxJobs.map((j) => j.country).filter((c): c is string => !!c))
   ).sort();
 
@@ -168,19 +182,22 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
 
 
   const handleMoveJob = async (id: string, newStatus: JobStatus) => {
-    // Gestion Undo pour Trash
+    // 1. Sauvegarde pour rollback éventuel
+    const jobToMove = jobs.find((j) => j.id === id);
+    if (!jobToMove) return;
+
+    // 2. Mise à jour Optimiste Immédiate (Disparition visuelle instantanée)
+    setJobs((prev) => prev.filter((j) => j.id !== id));
+
+    // Gestion Undo pour Trash (UI Toast)
     if (newStatus === "TRASH") {
-      const jobToTrash = jobs.find((j) => j.id === id);
-      if (jobToTrash) {
-        setLastTrashedJob(jobToTrash);
-        setShowUndoToast(true);
-        // Timer pour masquer le toast (on garde la ref du timer pour clear si besoin, mais ici simple)
-        setTimeout(() => setShowUndoToast(false), 5000);
-      }
+      setLastTrashedJob(jobToMove);
+      setShowUndoToast(true);
+      setTimeout(() => setShowUndoToast(false), 5000);
     }
 
     try {
-      // 1. Appel API pour persister
+      // 3. Appel API en arrière-plan
       const res = await fetch(`/api/jobs/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -188,12 +205,11 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
       });
 
       if (!res.ok) throw new Error("Failed to update status");
-
-      // 2. Mise à jour optimiste de l'UI
-      setJobs(jobs.filter((j) => j.id !== id));
     } catch (error) {
       console.error("Error moving job:", error);
-      alert("Erreur lors de la mise à jour");
+      // 4. Rollback en cas d'erreur (On remet le job)
+      setJobs((prev) => [jobToMove, ...prev]);
+      alert("Erreur lors de la mise à jour, l'annonce a été rétablie.");
     }
   };
 
@@ -390,6 +406,18 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
             ))}
           </select>
         </div>
+
+        {/* Bouton Réinitialiser */}
+        {isAnyFilterActive && (
+          <button
+            onClick={handleClearFilters}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-red-600 hover:bg-red-50 transition-colors"
+            title="Réinitialiser tous les filtres"
+          >
+            <FilterX size={14} />
+            Effacer
+          </button>
+        )}
       </div>
 
       {inboxJobs.length === 0 ? (

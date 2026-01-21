@@ -1,36 +1,25 @@
 # Logique métier & états
 
-## Tri à l’ingestion (ordre strict)
-1. Exclusion (blacklist):
-   - si `company` OU `title` contient un terme blacklist (case-insensitive, match substring)
-   - => category=FILTERED, matchedKeyword=<terme>, status=INBOX
-2. Identification cible (whitelist):
-   - si `title` contient un terme whitelist
-   - => category=TARGET, matchedKeyword=<terme>, status=INBOX
-3. Par défaut:
-   - => category=EXPLORE, status=INBOX
+## Parsing (Ingestion Email)
+- **1 Email = N Jobs** : Le parser analyse le HTML (Cheerio) pour extraire chaque offre individuellement.
+- **Extraction LinkedIn** :
+  - **Logo** : Extraction URL + Nettoyage Proxy Google.
+  - **Lieu** : Nettoyage "·" et parenthèses.
+  - **Métadonnées** : Extraction Regex pour Salaire, Mode (Remote/Hybrid), Tags (Actif, Simplifiée).
+- **Déduplication** : Repose sur l'index unique `{ url: 1 }`. Les doublons sont ignorés silencieusement.
 
-Source: specs v12. :contentReference[oaicite:12]{index=12}
+## Enrichissement IA (Batch)
+Lors de l'ingestion, un pipeline parallèle se déclenche :
+1. **Entreprises** : Identification ESN/Plateforme vs Client Final.
+2. **Lieux** : Normalisation en Pays (ex: "Nantes" -> "France").
+- **Cache** : Les résultats sont stockés dans `company_analyses` et `location_analyses` pour ne jamais payer 2 fois pour la même donnée.
 
-## Cycle de vie UI
-- L’utilisateur clique une carte => job “visité” (grisé) mais reste INBOX
-- Décision:
-  - Save => status=SAVED (disparaît Inbox)
-  - Trash => status=TRASH (disparaît Inbox)
-- Nettoyer les visités:
-  - tous les jobs visités dont status=INBOX => status=TRASH
+## Filtrage Automatique (Règles)
+1. **Blacklist** : Si Titre OU Company matche -> `category=FILTERED`.
+2. **Whitelist** : Si Titre matche -> `category=TARGET`.
+3. **Explore** : Sinon.
 
-## Filtrés
-- Un job filtré est `category=FILTERED`
-- Le bouton “Repêcher”:
-  - status=INBOX
-  - category=EXPLORE
-  - matchedKeyword=null
-
-## Règles de matching (détails)
-- Normalisation:
-  - trim
-  - comparaison case-insensitive
-- Matching:
-  - substring simple (rapide, suffisant)
-  - amélioration possible: tokenization + mots entiers + accents
+## Cycle de vie
+- **Visité** : Persistant en DB (`visitedAt`).
+- **Trash** : Soft delete (`status=TRASH`). Réversible via Toaster ou onglet Traitées.
+- **Blacklist** : Action "Filtrer" ajoute à la liste et met à jour les jobs existants.

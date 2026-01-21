@@ -4,15 +4,23 @@
 ### Document `Job`
 - `_id`: ObjectId
 - `createdAt`: Date (default now)
-- `rawString`: string (texte brut, optionnel)
 - `title`: string | null
 - `company`: string | null
-- `location`: string | null
-- `url`: string (unique si possible)
-- `parserGrade`: "A" | "B" | "C" (default "C")
+- `location`: string | null (nettoyé)
+- `country`: string | null (normalisé par IA)
+- `url`: string (unique, indexé)
+- `logoUrl`: string | null (URL LinkedIn nettoyée)
+- `rawString`: string (pour debug)
+- `parserGrade`: "A" | "B" | "C"
 - `category`: "TARGET" | "EXPLORE" | "FILTERED"
-- `matchedKeyword`: string | null (mot whitelist/blacklist déclencheur)
-- `status`: "INBOX" | "SAVED" | "TRASH" (default "INBOX")
+- `status`: "INBOX" | "SAVED" | "TRASH"
+- `matchedKeyword`: string | null
+- `workMode`: "remote" | "hybrid" | "on-site" | null
+- `salary`: string | null
+- `isActiveRecruiting`: boolean (flag)
+- `isEasyApply`: boolean (flag)
+- `isHighMatch`: boolean (flag)
+- `visitedAt`: Date | null (persistence état "Vu")
 - `aiAnalysis`: object | null
   - `isPlatformOrAgency`: boolean
   - `type`: string
@@ -20,18 +28,29 @@
   - `createdAt`: Date
 
 ### Indexes recommandés
-- `{ url: 1 }` unique (si URLs fiables)
+- `{ url: 1 }` unique (critique pour déduplication)
 - `{ createdAt: -1 }` pour tri flux
 - `{ status: 1, category: 1, createdAt: -1 }` pour requêtes vues
 
 ## Collection: `settings`
 ### Document unique `Settings`
 - `_id`
-- `whitelist`: string[] (mots-clés cibles)
-- `blacklist`: string[] (termes à exclure: mots + entreprises)
+- `whitelist`: string[]
+- `blacklist`: string[]
 - `updatedAt`: Date
 
-## À propos de “visited”
-Option A (comme maquette): état UI local (Set en mémoire, non persistant).
-Option B: persistant côté DB (champ `visitedAt: Date | null`), utile multi-device.
-Par défaut: Option A, et on garde la porte ouverte pour Option B.
+## Collection: `company_analyses` (Cache IA)
+Stocke les résultats d'analyse des entreprises pour économiser les appels IA.
+- `_id`: ObjectId
+- `companyName`: string (Index unique)
+- `isPlatformOrAgency`: boolean
+- `type`: string
+- `reason`: string
+- `createdAt`: Date
+
+## Collection: `location_analyses` (Cache IA)
+Stocke la normalisation géographique.
+- `_id`: ObjectId
+- `rawLocation`: string (Index unique)
+- `country`: string
+- `createdAt`: Date
