@@ -13,7 +13,8 @@ Une seule liste Inbox (flux unique), et des vues secondaires : Traitées (Saved/
 - **Phase 2 (UI):** Terminée. Maquette interactive OK.
 - **Phase 3 (MongoDB):** Terminée. Connexion VPS établie.
 - **Phase 4 (Backend):** Terminée. Ingestion multi-job LinkedIn, extraction métadonnées, persistence.
-- **Phase 5 (Polishing & New Features):** EN COURS. Prochaines étapes : Persistance de l'état "Vu", Recherche, Auth.
+- **Phase 5 (AI Batch Analysis):** Terminée. Analyse proactive des entreprises à l'ingestion.
+- **Phase 6 (Polishing & Deploy):** EN COURS. Prochaines étapes : Auth, Déploiement Vercel final.
 
 ## Découpage (monorepo unique)
 - Next.js App Router

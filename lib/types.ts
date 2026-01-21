@@ -9,6 +9,15 @@ export interface AIAnalysis {
   createdAt: Date;
 }
 
+export interface CompanyAnalysis {
+  _id?: string;
+  companyName: string;
+  isPlatformOrAgency: boolean;
+  type: string;
+  reason: string;
+  createdAt: Date;
+}
+
 export interface Job {
   id: string; // Map from _id in DB
   createdAt: Date;

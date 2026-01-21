@@ -13,6 +13,7 @@ import {
   Flame,
   Banknote,
   Briefcase,
+  ShieldAlert,
 } from "lucide-react";
 import { Job } from "@/lib/types";
 
@@ -21,6 +22,7 @@ interface JobCardProps {
   isVisited?: boolean;
   onVisit?: (id: string) => void;
   onUnvisit?: (id: string) => void;
+  onBlacklist?: (company: string) => void;
   onSave?: (id: string) => void;
   onTrash?: (id: string) => void;
   onRestore?: (id: string) => void;
@@ -38,6 +40,7 @@ export default function JobCard({
   isVisited = false,
   onVisit,
   onUnvisit,
+  onBlacklist,
   onSave,
   onTrash,
   onRestore,
@@ -102,15 +105,82 @@ export default function JobCard({
                   {job.title || job.rawString || "Sans titre"}
                 </h3>
               </div>
-              {isVisited && (
-                <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded font-medium shrink-0 uppercase tracking-wider">
-                  Vu
-                </span>
-              )}
+              
+              {/* Actions de décision (Top Right) */}
+              <div className="flex items-center gap-1 shrink-0 ml-auto">
+                {isVisited && (
+                  <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded font-medium uppercase tracking-wider mr-1">
+                    Vu
+                  </span>
+                )}
+                
+                {showActions && (
+                  <div className="flex items-center gap-1">
+                    {/* Bouton Non-vu (si visité) */}
+                    {isVisited && onUnvisit && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onUnvisit(job.id);
+                        }}
+                        className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+                        title="Marquer comme non-vu"
+                      >
+                        <EyeOff size={14} />
+                      </button>
+                    )}
+
+                    {isFilteredView ? (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (onRestore) onRestore(job.id);
+                        }}
+                        className="flex items-center px-2 py-1 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg text-[10px] font-bold shadow-sm transition-colors uppercase tracking-tight"
+                      >
+                        <RotateCcw size={10} className="mr-1" /> Repêcher
+                      </button>
+                    ) : (
+                      <>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (onBlacklist) onBlacklist(job.company || "");
+                          }}
+                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors mr-1"
+                          title="Filtrer cette entreprise"
+                        >
+                          <ShieldAlert size={16} />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (onTrash) onTrash(job.id);
+                          }}
+                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
+                          title="Jeter (Trash)"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (onSave) onSave(job.id);
+                          }}
+                          className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-full transition-colors"
+                          title="Garder (Save)"
+                        >
+                          <Bookmark size={16} />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="flex items-center text-sm text-gray-500 gap-2 flex-wrap">
-              <span className="font-bold text-gray-700 whitespace-nowrap">
+              <span className="font-bold text-gray-700 whitespace-nowrap flex items-center gap-1">
                 {job.company || "Société inconnue"}
               </span>
               <span className="text-gray-300">•</span>
@@ -171,83 +241,15 @@ export default function JobCard({
         )}
       </div>
 
-      {/* Actions Bar */}
-      <div className="flex items-center justify-between pt-3 border-t border-gray-100 mt-1">
-        {/* AI Detective Trigger (Only in Inbox & Standard View) */}
-        {showActions && job.status === "INBOX" && onAnalyze && (
-          <div className="flex gap-2">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onAnalyze(job.id);
-              }}
-              className="text-xs flex items-center text-indigo-600 hover:bg-indigo-50 px-2 py-1.5 rounded-md transition-colors font-medium"
-            >
-              <Bot size={14} className="mr-1.5" />
-              {isMono ? "Scan ?" : "Analyser l'auteur ?"}
-            </button>
-            {isVisited && onUnvisit && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onUnvisit(job.id);
-                }}
-                className="text-xs flex items-center text-gray-500 hover:bg-gray-100 px-2 py-1.5 rounded-md transition-colors font-medium"
-                title="Marquer comme non-vu"
-              >
-                <EyeOff size={14} className="mr-1.5" />
-                Non-vu
-              </button>
-            )}
+      {/* Footer conditionnel (uniquement si avertissement IA) */}
+      {job.aiAnalysis?.isPlatformOrAgency && (
+        <div className="flex items-center justify-between pt-3 border-t border-gray-100 mt-1">
+          <div className="text-[10px] bg-red-50 text-red-600 px-2 py-1 rounded border border-red-100 font-medium flex items-center gap-1.5 shadow-sm">
+            <AlertTriangle size={12} />
+            Détecté comme : {job.aiAnalysis.type} — {job.aiAnalysis.reason}
           </div>
-        )}
-
-        {isFilteredView && (
-          <div className="text-xs text-red-500 font-medium flex items-center bg-red-50 px-2 py-1 rounded">
-            <Filter size={12} className="mr-1" /> Bloqué par règle
-          </div>
-        )}
-
-        {/* Main Decision Actions */}
-        {showActions && (
-          <div className="flex space-x-2 ml-auto">
-            {isFilteredView ? (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (onRestore) onRestore(job.id);
-                }}
-                className="flex items-center px-3 py-1.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg text-xs font-medium shadow-sm"
-              >
-                <RotateCcw size={12} className="mr-1.5" /> Repêcher
-              </button>
-            ) : (
-              <>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (onTrash) onTrash(job.id);
-                  }}
-                  className="flex items-center justify-center w-8 h-8 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
-                  title="Jeter (Trash)"
-                >
-                  <Trash2 size={16} />
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (onSave) onSave(job.id);
-                  }}
-                  className="flex items-center justify-center w-8 h-8 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-full transition-colors"
-                  title="Garder (Save)"
-                >
-                  <Bookmark size={16} />
-                </button>
-              </>
-            )}
-          </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
