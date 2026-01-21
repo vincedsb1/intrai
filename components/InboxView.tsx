@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { CheckCircle, Trash2 } from "lucide-react";
+import { CheckCircle, Trash2, Search, X } from "lucide-react";
 import JobCard from "./JobCard";
 import AiDetectiveModal from "./AiDetectiveModal";
 import { Job, JobStatus } from "@/lib/types";
@@ -12,29 +12,75 @@ interface InboxViewProps {
 
 export default function InboxView({ initialJobs }: InboxViewProps) {
   const [jobs, setJobs] = useState<Job[]>(initialJobs);
-  const [visitedIds, setVisitedIds] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState("");
+  const [visitedIds, setVisitedIds] = useState<Set<string>>(() => {
+    // Initialisation depuis les données serveur
+    const initialVisited = new Set<string>();
+    initialJobs.forEach((job) => {
+      if (job.visitedAt) {
+        initialVisited.add(job.id);
+      }
+    });
+    return initialVisited;
+  });
   const [analyzingJobId, setAnalyzingJobId] = useState<string | null>(null);
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
 
-  // Filtre: INBOX et pas FILTERED
-  const inboxJobs = jobs.filter(
+  // Filtre de base: INBOX et pas FILTERED
+  const baseInboxJobs = jobs.filter(
     (j) => j.status === "INBOX" && j.category !== "FILTERED"
   );
-  const visitedCount = inboxJobs.filter((j) => visitedIds.has(j.id)).length;
+
+  // Application de la recherche
+  const inboxJobs = baseInboxJobs.filter((job) => {
+    if (!searchQuery.trim()) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      job.title?.toLowerCase().includes(query) ||
+      job.company?.toLowerCase().includes(query)
+    );
+  });
+
+  const visitedCount = baseInboxJobs.filter((j) => visitedIds.has(j.id)).length;
 
   const currentAnalyzingJob = jobs.find((j) => j.id === analyzingJobId) || null;
 
-  const handleVisit = (id: string) => {
+  const handleVisit = async (id: string) => {
     const newVisited = new Set(visitedIds);
     newVisited.add(id);
     setVisitedIds(newVisited);
+    
+    console.log("Calling visit API for", id);
+
+    // Appel API (fire and forget)
+    try {
+      await fetch(`/api/jobs/${id}/visit`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ visited: true }),
+      });
+    } catch (err) {
+      console.error("Failed to persist visit", err);
+    }
   };
 
-  const handleUnvisit = (id: string) => {
+  const handleUnvisit = async (id: string) => {
     const newVisited = new Set(visitedIds);
     newVisited.delete(id);
     setVisitedIds(newVisited);
+
+    // Appel API
+    try {
+      await fetch(`/api/jobs/${id}/visit`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ visited: false }),
+      });
+    } catch (err) {
+      console.error("Failed to persist unvisit", err);
+    }
   };
+
 
   const handleMoveJob = async (id: string, newStatus: JobStatus) => {
     try {
@@ -103,6 +149,27 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
     }
   };
 
+  // Groupement des jobs par lot (Date + Heure)
+  const groupedJobs = inboxJobs.reduce((acc, job) => {
+    const dateKey = job.createdAt
+      ? new Date(job.createdAt).toLocaleDateString("fr-FR", {
+          day: "numeric",
+          month: "short",
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      : "Date inconnue";
+    
+    if (!acc[dateKey]) {
+      acc[dateKey] = [];
+    }
+    acc[dateKey].push(job);
+    return acc;
+  }, {} as Record<string, Job[]>);
+
+  // Ordre des clés (déjà trié par date décroissante car inboxJobs l'est, mais on s'assure de l'ordre d'insertion)
+  const groupKeys = Object.keys(groupedJobs); // Note: reduce préserve l'ordre d'insertion des clés si inboxJobs est trié
+
   return (
     <div className="relative pb-24">
       {/* Sub-header Inbox */}
@@ -118,6 +185,28 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
         </span>
       </div>
 
+      {/* Barre de recherche */}
+      <div className="mb-6 relative group">
+        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+          <Search size={16} className="text-gray-400 group-focus-within:text-blue-500 transition-colors" />
+        </div>
+        <input
+          type="text"
+          placeholder="Rechercher un poste ou une entreprise..."
+          className="block w-full pl-10 pr-10 py-2.5 bg-white border border-gray-200 rounded-xl text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+        {searchQuery && (
+          <button
+            onClick={() => setSearchQuery("")}
+            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+          >
+            <X size={16} />
+          </button>
+        )}
+      </div>
+
       {inboxJobs.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <div className="bg-green-100 p-4 rounded-full mb-4 animate-pulse">
@@ -130,18 +219,30 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
           </p>
         </div>
       ) : (
-        <div className="space-y-1">
-          {inboxJobs.map((job) => (
-            <JobCard
-              key={job.id}
-              job={job}
-              isVisited={visitedIds.has(job.id)}
-              onVisit={handleVisit}
-              onUnvisit={handleUnvisit}
-              onSave={(id) => handleMoveJob(id, "SAVED")}
-              onTrash={(id) => handleMoveJob(id, "TRASH")}
-              onAnalyze={handleAnalyze}
-            />
+        <div className="space-y-8">
+          {groupKeys.map((dateKey) => (
+            <div key={dateKey}>
+              <div className="flex items-center gap-2 mb-3 px-1">
+                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider bg-gray-50 px-2 py-1 rounded">
+                  {dateKey}
+                </span>
+                <div className="h-[1px] bg-gray-100 flex-1"></div>
+              </div>
+              <div className="space-y-1">
+                {groupedJobs[dateKey].map((job) => (
+                  <JobCard
+                    key={job.id}
+                    job={job}
+                    isVisited={visitedIds.has(job.id)}
+                    onVisit={handleVisit}
+                    onUnvisit={handleUnvisit}
+                    onSave={(id) => handleMoveJob(id, "SAVED")}
+                    onTrash={(id) => handleMoveJob(id, "TRASH")}
+                    onAnalyze={handleAnalyze}
+                  />
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       )}

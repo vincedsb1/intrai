@@ -10,13 +10,18 @@ export default function Header() {
 
   const tabs = [
     { id: "inbox", href: "/inbox", icon: Inbox, label: "Inbox" },
-    { id: "processed", href: "/processed", icon: CheckCircle, label: "Traitées" },
+    {
+      id: "processed",
+      href: "/processed",
+      icon: CheckCircle,
+      label: "Traitées",
+    },
     { id: "filtered", href: "/filtered", icon: ShieldAlert, label: "Filtrés" },
     { id: "settings", href: "/settings", icon: Settings, label: "Réglages" },
   ];
 
   return (
-    <header className="bg-white border-b sticky top-0 z-10 shadow-sm">
+    <header className="bg-white sticky top-0 z-10 shadow-sm">
       <div className="max-w-3xl mx-auto px-4 h-16 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center text-white font-bold shadow-md">

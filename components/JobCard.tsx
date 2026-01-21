@@ -117,17 +117,6 @@ export default function JobCard({
               <span className="truncate">
                 {job.location || "Localisation inconnue"}
               </span>
-              <span className="text-gray-300">•</span>
-              <span className="text-xs text-gray-400">
-                {job.createdAt
-                  ? new Date(job.createdAt).toLocaleDateString("fr-FR", {
-                      day: "numeric",
-                      month: "short",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })
-                  : ""}
-              </span>
             </div>
 
             {/* Métadonnées additionnelles */}

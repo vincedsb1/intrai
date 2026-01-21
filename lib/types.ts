@@ -28,6 +28,7 @@ export interface Job {
   matchedKeyword?: string | null;
   tags?: string[];
   isVisited?: boolean;
+  visitedAt?: Date | null; // Date de visite pour persistance
   aiAnalysis?: AIAnalysis | null;
 }
 

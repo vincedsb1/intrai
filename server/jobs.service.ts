@@ -76,6 +76,19 @@ export async function restoreJob(id: string) {
   );
 }
 
+export async function toggleJobVisited(id: string, visited: boolean) {
+  const db = await getDb();
+  await db.collection(JOBS_COLLECTION).updateOne(
+    { _id: new ObjectId(id) },
+    { 
+      $set: { 
+        visitedAt: visited ? new Date() : null,
+        updatedAt: new Date() 
+      } 
+    }
+  );
+}
+
 /**
  * Logique de tri à l'ingestion
  */
