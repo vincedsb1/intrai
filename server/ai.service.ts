@@ -72,7 +72,14 @@ export async function resolveCompanyAnalyses(companies: (string | null)[]): Prom
   return resultsMap;
 }
 
-async function analyzeCompaniesBatch(companies: string[]) {
+interface BatchAnalysisResult {
+  company: string;
+  isPlatformOrAgency: boolean;
+  type: string;
+  reason: string;
+}
+
+async function analyzeCompaniesBatch(companies: string[]): Promise<BatchAnalysisResult[]> {
   const prompt = `Analyses la liste des entreprises suivantes et détermine pour chacune si c'est une ESN/Cabinet/Plateforme ou un Client Final.
 
 Liste : ${JSON.stringify(companies)}
@@ -100,7 +107,7 @@ Réponds UNIQUEMENT avec ce JSON exact :
     if (!content) return [];
 
     const parsed = JSON.parse(content);
-    return parsed.results || [];
+    return (parsed.results || []) as BatchAnalysisResult[];
   } catch (error) {
     console.error("AI Batch Analysis error:", error);
     return [];
