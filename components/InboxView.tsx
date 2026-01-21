@@ -42,7 +42,7 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
 
   // Extraction dynamique des pays
   const availableCountries = Array.from(
-    new Set(baseInboxJobs.map((j) => j.country).filter(Boolean))
+    new Set(baseInboxJobs.map((j) => j.country).filter((c): c is string => !!c))
   ).sort();
 
   // Application des filtres (Recherche + Mode + EasyApply + Pays)
