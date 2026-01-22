@@ -8,6 +8,7 @@ import {
   Banknote,
   Briefcase,
   ShieldAlert,
+  Bot,
 } from "lucide-react";
 import { Job } from "@/lib/types";
 
@@ -142,8 +143,10 @@ export default function JobCard({
                         <button onClick={(e) => { e.stopPropagation(); onRestore && onRestore(job.id); }} className="w-9 h-9 flex items-center justify-center rounded-full bg-slate-50 border border-slate-200 text-slate-600 active:bg-blue-50 active:text-blue-600 transition-colors">R</button>
                      ) : (
                         <>
-                            <button onClick={(e) => { e.stopPropagation(); onSave && onSave(job.id); }} className="w-9 h-9 flex items-center justify-center rounded-full bg-slate-50 border border-slate-200 text-slate-400 active:bg-blue-50 active:text-blue-600 transition-colors"><Bookmark size={18} /></button>
-                            <button onClick={(e) => { e.stopPropagation(); onTrash && onTrash(job.id); }} className="w-9 h-9 flex items-center justify-center rounded-full bg-slate-50 border border-slate-200 text-slate-400 active:bg-red-50 active:text-red-600 transition-colors"><Trash2 size={18} /></button>
+                            <button onClick={(e) => { e.stopPropagation(); onAnalyze && onAnalyze(job.id); }} className="w-9 h-9 flex items-center justify-center rounded-full bg-slate-50 border border-slate-200 text-slate-400 active:bg-indigo-50 active:text-indigo-600 transition-colors" title="Analyser"><Bot size={18} /></button>
+                            <button onClick={(e) => { e.stopPropagation(); onBlacklist && onBlacklist(job.company || ""); }} className="w-9 h-9 flex items-center justify-center rounded-full bg-slate-50 border border-slate-200 text-slate-400 active:bg-red-50 active:text-red-600 transition-colors" title="Filtrer"><ShieldAlert size={18} /></button>
+                            <button onClick={(e) => { e.stopPropagation(); onSave && onSave(job.id); }} className="w-9 h-9 flex items-center justify-center rounded-full bg-slate-50 border border-slate-200 text-slate-400 active:bg-blue-50 active:text-blue-600 transition-colors" title="Sauvegarder"><Bookmark size={18} /></button>
+                            <button onClick={(e) => { e.stopPropagation(); onTrash && onTrash(job.id); }} className="w-9 h-9 flex items-center justify-center rounded-full bg-slate-50 border border-slate-200 text-slate-400 active:bg-red-50 active:text-red-600 transition-colors" title="Ignorer"><Trash2 size={18} /></button>
                         </>
                      )}
                 </div>
@@ -160,6 +163,20 @@ export default function JobCard({
                         </button>
                     ) : (
                         <>
+                            <button 
+                                onClick={(e) => { e.stopPropagation(); onAnalyze && onAnalyze(job.id); }}
+                                className="w-9 h-9 flex items-center justify-center rounded-full bg-white border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50 shadow-sm transition-all"
+                                title="Analyser l'auteur"
+                            >
+                                <Bot size={16} />
+                            </button>
+                            <button 
+                                onClick={(e) => { e.stopPropagation(); onBlacklist && onBlacklist(job.company || ""); }}
+                                className="w-9 h-9 flex items-center justify-center rounded-full bg-white border border-slate-200 text-slate-400 hover:text-red-600 hover:border-red-200 hover:bg-red-50 shadow-sm transition-all"
+                                title="Filtrer l'entreprise"
+                            >
+                                <ShieldAlert size={16} />
+                            </button>
                             <button 
                                 onClick={(e) => { e.stopPropagation(); onSave && onSave(job.id); }}
                                 className="w-9 h-9 flex items-center justify-center rounded-full bg-white border border-slate-200 text-slate-400 hover:text-emerald-600 hover:border-emerald-200 hover:bg-emerald-50 shadow-sm transition-all"

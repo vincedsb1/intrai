@@ -52,6 +52,19 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
   const handleCountryChange = (val: string) => {
     updateUrlParams("country", val);
   };
+
+  const handleClearFilters = () => {
+    updateUrlParams("q", null);
+    handleModeChange("all");
+    handleEasyChange(false);
+    handleCountryChange("all");
+  };
+
+  const isAnyFilterActive = 
+    searchQuery !== "" || 
+    filterWorkMode !== "all" || 
+    filterEasyApply || 
+    filterCountry !== "all";
   
   // Local State
   const [visitedIds, setVisitedIds] = useState<Set<string>>(() => {
@@ -74,10 +87,40 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
   const [lastTrashedJob, setLastTrashedJob] = useState<Job | null>(null);
   const [showBulkCleanToast, setShowBulkCleanToast] = useState(true);
 
+  const handleBlacklistConfirm = async (term: string) => {
+    try {
+      const res = await fetch("/api/ai/ban-author", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ company: term }),
+      });
+
+      if (!res.ok) throw new Error("Failed to blacklist");
+
+      // Optimistic update
+      setJobs(jobs.filter((j) => j.company !== term));
+      setIsBlacklistModalOpen(false);
+      setIsAiModalOpen(false);
+      setToast({ msg: `Auteur "${term}" banni`, type: 'trash' });
+      
+      setTimeout(() => {
+        setToast((current) => current?.msg.includes(term) ? null : current);
+      }, 4000);
+    } catch (error) {
+      console.error("Error blacklisting:", error);
+      alert("Erreur lors du filtrage");
+    }
+  };
+
   // --- Filtering Logic ---
   const baseInboxJobs = jobs.filter(
     (j) => j.status === "INBOX" && j.category !== "FILTERED"
   );
+
+  // Extract available countries dynamically
+  const availableCountries = Array.from(
+    new Set(baseInboxJobs.map((j) => j.country).filter((c): c is string => !!c))
+  ).sort();
 
   const inboxJobs = baseInboxJobs.filter((job) => {
     if (searchQuery.trim()) {
@@ -176,8 +219,14 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
   // Grouping
   const groupedJobs = inboxJobs.reduce((acc, job) => {
     const dateKey = job.createdAt
-      ? new Date(job.createdAt).toLocaleDateString("fr-FR", { day: "numeric", month: "long" })
+      ? new Date(job.createdAt).toLocaleDateString("fr-FR", { 
+          day: "numeric", 
+          month: "long", 
+          hour: "2-digit", 
+          minute: "2-digit" 
+        }).replace(":", "h")
       : "Date inconnue";
+    
     if (!acc[dateKey]) acc[dateKey] = [];
     acc[dateKey].push(job);
     return acc;
@@ -208,6 +257,9 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
             setFilterEasyApply={handleEasyChange}
             filterCountry={filterCountry}
             setFilterCountry={handleCountryChange}
+            availableCountries={availableCountries}
+            isAnyFilterActive={isAnyFilterActive}
+            onClearFilters={handleClearFilters}
         />
 
         {/* Empty State */}
@@ -219,7 +271,7 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
                 <h3 className="text-xl font-bold text-slate-900">Aucun résultat</h3>
                 <p className="text-slate-500 mt-2 max-w-xs mx-auto">Essayez de modifier vos filtres ou revenez plus tard.</p>
                 <button 
-                    onClick={() => { updateUrlParams("q", null); handleModeChange("all"); handleEasyChange(false); handleCountryChange("all"); }} 
+                    onClick={handleClearFilters}
                     className="mt-6 text-sm font-bold text-blue-600 hover:underline"
                 >
                     Réinitialiser les filtres
@@ -277,18 +329,14 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
             isOpen={isAiModalOpen}
             onClose={() => setIsAiModalOpen(false)}
             job={currentAnalyzingJob}
-            onBan={(company) => {
-                 // Logic would go here
-            }}
+            onBan={handleBlacklistConfirm}
         />
 
         <BlacklistModal
             isOpen={isBlacklistModalOpen}
             onClose={() => setIsBlacklistModalOpen(false)}
             initialTerm={blacklistTerm}
-            onConfirm={async (term) => {
-                 // Logic would go here
-            }}
+            onConfirm={handleBlacklistConfirm}
         />
     </>
   );
