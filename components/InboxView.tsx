@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { Inbox } from "lucide-react";
 import JobCard from "./JobCard";
@@ -22,18 +22,10 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
   const [jobs, setJobs] = useState<Job[]>(initialJobs);
   
   // Filters State
-  // Note: Search is managed via URL now by DesktopHeader, but we read it here
   const searchQuery = searchParams.get("q") || "";
-  
-  const [filterWorkMode, setFilterWorkMode] = useState<string>(
-    (searchParams.get("mode")) || "all"
-  );
-  const [filterEasyApply, setFilterEasyApply] = useState(
-    searchParams.get("easy") === "true"
-  );
-  const [filterCountry, setFilterCountry] = useState(
-    searchParams.get("country") || "all"
-  );
+  const filterWorkMode = searchParams.get("mode") || "all";
+  const filterEasyApply = searchParams.get("easy") === "true";
+  const filterCountry = searchParams.get("country") || "all";
   
   // URL Params Updater
   const updateUrlParams = (key: string, value: string | null) => {
@@ -50,17 +42,14 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
 
   // Handlers
   const handleModeChange = (val: string) => {
-    setFilterWorkMode(val);
     updateUrlParams("mode", val);
   };
 
   const handleEasyChange = (val: boolean) => {
-    setFilterEasyApply(val);
     updateUrlParams("easy", val ? "true" : "false");
   };
 
   const handleCountryChange = (val: string) => {
-    setFilterCountry(val);
     updateUrlParams("country", val);
   };
   
@@ -77,7 +66,6 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
   
   const [analyzingJobId, setAnalyzingJobId] = useState<string | null>(null);
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
-  
   const [isBlacklistModalOpen, setIsBlacklistModalOpen] = useState(false);
   const [blacklistTerm, setBlacklistTerm] = useState("");
 
@@ -148,7 +136,6 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
       alert("Erreur serveur, action annulée.");
     }
     
-    // Auto-hide toast after 4s
     setTimeout(() => {
         setToast((current) => current?.msg === (newStatus === "TRASH" ? "Offre ignorée" : "Offre sauvegardée") ? null : current);
     }, 4000);
@@ -159,7 +146,6 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
     const jobToRestore = lastTrashedJob;
     setLastTrashedJob(null);
     setToast(null);
-
     setJobs((prev) => [jobToRestore, ...prev]);
 
     try {
@@ -178,7 +164,6 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
     setJobs(jobs.filter((j) => !idsToTrash.includes(j.id)));
     setVisitedIds(new Set());
     
-    // Async background update
     idsToTrash.map((id) =>
           fetch(`/api/jobs/${id}`, {
             method: "PATCH",
@@ -193,8 +178,6 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
     const dateKey = job.createdAt
       ? new Date(job.createdAt).toLocaleDateString("fr-FR", { day: "numeric", month: "long" })
       : "Date inconnue";
-    
-    // Check if today/yesterday for nicer headers (optional, stick to date for now to match maquette style)
     if (!acc[dateKey]) acc[dateKey] = [];
     acc[dateKey].push(job);
     return acc;
@@ -203,16 +186,16 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
   const groupKeys = Object.keys(groupedJobs);
 
   return (
-    <div className="pb-32">
-        {/* Header Section (Desktop hidden handled by Layout) */}
-        <div className="flex justify-between items-end mb-6 px-1 mt-4 md:mt-0">
+    <>
+        {/* Page Header (Desktop) - Hidden on mobile */}
+        <div className="hidden md:flex items-end justify-between mb-8">
             <div>
             <h2 className="text-3xl font-bold text-slate-900 tracking-tight">Opportunités</h2>
             <p className="text-slate-500 text-sm mt-2 font-medium">
                 Gérez vos nouvelles offres d'emploi.
             </p>
             </div>
-             <button onClick={() => setVisitedIds(new Set())} className="text-sm font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 px-4 py-2 rounded-xl transition-colors shadow-sm hidden md:block">
+             <button onClick={() => setVisitedIds(new Set())} className="text-sm font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 px-4 py-2 rounded-xl transition-colors shadow-sm">
                 Tout marquer comme vu
             </button>
         </div>
@@ -270,7 +253,7 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
             </div>
         )}
 
-        {/* Toast Notification (Undo or Success) */}
+        {/* Toast Notification */}
         {toast && (
             <Toast 
                 message={toast.msg} 
@@ -279,17 +262,14 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
             />
         )}
         
-        {/* Bulk Clean Toast (Special Case) */}
+        {/* Bulk Clean Toast */}
         {visitedCount > 0 && showBulkCleanToast && !toast && (
              <Toast 
                 message={`${visitedCount} offre${visitedCount > 1 ? 's' : ''} visitée${visitedCount > 1 ? 's' : ''}`}
                 type="success"
-                onUndo={handleBulkClean} // Using onUndo slot for action button (hacky but works for UI match)
+                actionLabel="Nettoyer"
+                onUndo={handleBulkClean}
              />
-             // Note: Ideally Toast should handle custom actions, but standardizing for now.
-             // Actually, let's just stick to the specific bulk clean UI logic if needed or adapt Toast.
-             // The previous Bulk Clean was specific. Let's re-add a specific Bulk Clean Toast here if Toast component is too rigid.
-             // Or better: update Toast component to accept actionLabel.
         )}
 
         {/* Modals */}
@@ -298,7 +278,7 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
             onClose={() => setIsAiModalOpen(false)}
             job={currentAnalyzingJob}
             onBan={(company) => {
-                 // Logic from previous implementation
+                 // Logic would go here
             }}
         />
 
@@ -307,9 +287,9 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
             onClose={() => setIsBlacklistModalOpen(false)}
             initialTerm={blacklistTerm}
             onConfirm={async (term) => {
-                 // Logic...
+                 // Logic would go here
             }}
         />
-    </div>
+    </>
   );
 }

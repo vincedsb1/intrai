@@ -24,7 +24,9 @@ export default function TabsLayout({
 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto overflow-x-hidden scroll-smooth bg-[#F1F5F9]">
-           {children}
+           <div className="max-w-5xl mx-auto p-4 md:p-8 pb-32">
+              {children}
+           </div>
         </div>
 
       </main>
