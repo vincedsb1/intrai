@@ -3,35 +3,46 @@
 import React, { useState, useEffect } from "react";
 import { Search, Inbox } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useDebounce } from "@/lib/hooks/useDebounce"; // Assuming we might need this or implement simple debounce
+import { useDebounce } from "@/lib/hooks/useDebounce";
 
 export default function DesktopHeader() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [searchQuery, setSearchQuery] = useState(searchParams.get("q") || "");
+  
+  // Local state for the input field
+  const [inputValue, setInputValue] = useState(searchParams.get("q") || "");
+  
+  // Debounced value to trigger URL update
+  const debouncedSearchQuery = useDebounce(inputValue, 300);
 
   const today = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
 
-  // Update local state when URL changes
+  // Sync local input when URL changes (e.g. navigation, clear filters)
   useEffect(() => {
-    setSearchQuery(searchParams.get("q") || "");
+    const q = searchParams.get("q") || "";
+    if (q !== inputValue) {
+      setInputValue(q);
+    }
   }, [searchParams]);
 
-  const handleSearch = (val: string) => {
-    setSearchQuery(val);
+  // Update URL when debounced value changes
+  useEffect(() => {
     const current = new URLSearchParams(Array.from(searchParams.entries()));
+    const prevQ = current.get("q") || "";
     
-    if (!val) {
+    if (debouncedSearchQuery === prevQ) return;
+
+    if (!debouncedSearchQuery) {
       current.delete("q");
     } else {
-      current.set("q", val);
+      current.set("q", debouncedSearchQuery);
     }
     
     const search = current.toString();
     const query = search ? `?${search}` : "";
     
-    router.replace(`?${search}`, { scroll: false });
-  };
+    router.replace(query || "?", { scroll: false });
+  }, [debouncedSearchQuery, router, searchParams]);
 
   return (
     <header className="hidden md:flex h-20 px-8 border-b border-slate-200 bg-white/80 backdrop-blur-xl items-center justify-between shrink-0 z-20 sticky top-0">
@@ -45,8 +56,8 @@ export default function DesktopHeader() {
           <input
             type="text"
             placeholder="Rechercher par poste, entreprise..."
-            value={searchQuery}
-            onChange={(e) => handleSearch(e.target.value)}
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
             className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-2.5 pl-11 pr-4 text-sm focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white transition-all placeholder-slate-400 shadow-sm outline-none"
           />
         </div>
