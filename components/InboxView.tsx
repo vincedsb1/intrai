@@ -5,7 +5,6 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { Inbox } from "lucide-react";
 import JobCard from "./JobCard";
 import BlacklistModal from "./BlacklistModal";
-import AiDetectiveModal from "./AiDetectiveModal";
 import FilterBar from "./FilterBar";
 import Toast from "./Toast";
 import { Job, JobStatus } from "@/lib/types";
@@ -99,8 +98,6 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
     return initialVisited;
   });
   
-  const [analyzingJobId, setAnalyzingJobId] = useState<string | null>(null);
-  const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [isBlacklistModalOpen, setIsBlacklistModalOpen] = useState(false);
   const [blacklistTerm, setBlacklistTerm] = useState("");
 
@@ -122,7 +119,6 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
       // Optimistic update
       setJobs(jobs.filter((j) => j.company !== term));
       setIsBlacklistModalOpen(false);
-      setIsAiModalOpen(false);
       setToast({ msg: `Auteur "${term}" banni`, type: 'trash' });
       
       setTimeout(() => {
@@ -159,7 +155,6 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
   });
 
   const visitedCount = baseInboxJobs.filter((j) => visitedIds.has(j.id)).length;
-  const currentAnalyzingJob = jobs.find((j) => j.id === analyzingJobId) || null;
 
   // Actions
   const handleVisit = async (id: string) => {
@@ -318,7 +313,6 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
                                     onBlacklist={() => { setBlacklistTerm(job.company || ""); setIsBlacklistModalOpen(true); }}
                                     onSave={(id) => handleMoveJob(id, "SAVED")}
                                     onTrash={(id) => handleMoveJob(id, "TRASH")}
-                                    onAnalyze={(id) => { setAnalyzingJobId(id); setIsAiModalOpen(true); }}
                                 />
                             ))}
                         </div>
@@ -347,13 +341,6 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
         )}
 
         {/* Modals */}
-        <AiDetectiveModal
-            isOpen={isAiModalOpen}
-            onClose={() => setIsAiModalOpen(false)}
-            job={currentAnalyzingJob}
-            onBan={handleBlacklistConfirm}
-        />
-
         <BlacklistModal
             isOpen={isBlacklistModalOpen}
             onClose={() => setIsBlacklistModalOpen(false)}
