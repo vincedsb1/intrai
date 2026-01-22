@@ -9,9 +9,9 @@ App de tri d’offres : “Visualiser -> Cliquer -> Décider -> Archiver”.
 Une seule liste Inbox (flux unique), et des vues secondaires : Traitées (Saved/Trash), Filtrés, Réglages.
 
 ## Status Actuel
-- **Phase 1-5:** Terminées. Ingestion, Parsing, AI Batch, UI v2.
-- **Phase 6 (Location Normalization):** Terminée. Filtre Pays dynamique opérationnel.
-- **Phase 7 (Polishing & Deploy):** EN COURS. Prochaines étapes : Auth, Déploiement Vercel final.
+- **Phase 1-6:** Terminées (Ingestion, Parsing, AI, Normalisation).
+- **Phase 7 (UI Refactor v2):** Terminée. Passage au layout Sidebar/Header Responsive, Glassmorphism, Animations.
+- **Phase 8 (Deploy):** À venir.
 
 ## Découpage (monorepo unique)
 - Next.js App Router
@@ -21,12 +21,14 @@ Une seule liste Inbox (flux unique), et des vues secondaires : Traitées (Saved/
 
 ## Dossiers proposés
 - `/app` : routes & pages (App Router). `page.tsx` redirige vers `/inbox`.
-- `/app/(tabs)` : layout + vues Inbox/Traitées/Filtrés/Réglages
-- `/components` : composants UI (JobCard, TabsNav, Modal, Badges, Inputs)
+- `/app/(tabs)` : Shell Responsive (Sidebar Desktop / Header Mobile).
+- `/components` :
+  - **Structure**: `Sidebar`, `MobileHeader`, `DesktopHeader`.
+  - **Core**: `JobCard` (v2), `FilterBar`, `Toast` (Custom Action).
+  - **Modals**: `AiDetectiveModal`, `BlacklistModal`.
 - `/lib` : db (mongo), validation, helpers, constantes
-- `/server` : services métier (tri ingestion, règles whitelist/blacklist, AI detective)
-- `/docs` : documentation indexée (specs: `/docs/*.md`, règles: `/docs/rules/*.md`, meta: `/docs/meta/*.md`)
-- `/tests` : tests vitest (unit + integration)
+- `/server` : services métier
+- `/docs` : documentation indexée
 
 ## Entités (concept)
 - Job: offre ingérée
@@ -37,22 +39,19 @@ Une seule liste Inbox (flux unique), et des vues secondaires : Traitées (Saved/
 ## États clés (spéc v12)
 - category: TARGET | EXPLORE | FILTERED
 - status: INBOX | SAVED | TRASH
-- visited: UI-only par défaut (Set local), option de persistance à discuter
 
 ## Contrats API (résumé)
 - GET /api/jobs?status=&category=
 - PATCH /api/jobs/:id (status)
 - POST /api/jobs/:id/restore
-- POST /api/jobs/bulk-clean-visited (optionnel si visited persistant)
+- POST /api/jobs/:id/visit (Persistance "Vu")
 - GET/PATCH /api/settings (whitelist, blacklist)
 - POST /api/ingest/webhook (ingestion JSON structuré)
 - POST /api/ingest/email (ingestion Email CloudMailin Multipart)
-- POST /api/ai/analyze-author (AI Detective)
+- POST /api/ai/ban-author (AI Detective + Blacklist)
 
-## Observabilité minimale
-- Logs server: ingestion, règles déclenchées, erreurs db, erreurs AI
-- Erreurs UI: toast minimal (option), fallback states
-
-## Sécurité minimale
-- Webhook ingestion protégé par un secret (header) stocké en env
-- API settings potentiellement protégée (au minimum par un token simple) si app exposée
+## UI Guidelines (v2)
+- **Design**: Slate Theme (`#F1F5F9`), Glassmorphism, Ombres douces (`shadow-soft`).
+- **Layout**: Sidebar fixe (Desktop) vs Sticky Header + Horizontal Tabs (Mobile).
+- **Animations**: `animate-enter`, `slide-up-toast`, transitions fluides.
+- **Interactions**: Actions flottantes au survol (Desktop), Badges interactifs.

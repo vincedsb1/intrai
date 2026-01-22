@@ -10,55 +10,66 @@ interface ProcessedViewProps {
 }
 
 export default function ProcessedView({ initialJobs }: ProcessedViewProps) {
-  // Dans une vraie app, on fetcherait depuis l'API, ici on simule
-  // Note: Comme on n'a pas de state global, les changements de l'Inbox ne se verront pas ici
-  // tant qu'on n'a pas de DB. C'est normal pour cette phase UI.
   const [jobs] = useState<Job[]>(initialJobs);
-  const [subTab, setSubTab] = useState<JobStatus>("SAVED"); // SAVED or TRASH
+  const [subTab, setSubTab] = useState<JobStatus>("SAVED");
 
   const displayJobs = jobs.filter((j) => j.status === subTab);
 
   return (
-    <div>
-      <div className="flex p-1 bg-gray-100 rounded-lg mb-6">
-        <button
-          onClick={() => setSubTab("SAVED")}
-          className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${
-            subTab === "SAVED"
-              ? "bg-white text-green-700 shadow-sm"
-              : "text-gray-500 hover:text-gray-700"
-          }`}
-        >
-          Sauvegardés ({jobs.filter((j) => j.status === "SAVED").length})
-        </button>
-        <button
-          onClick={() => setSubTab("TRASH")}
-          className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${
-            subTab === "TRASH"
-              ? "bg-white text-red-700 shadow-sm"
-              : "text-gray-500 hover:text-gray-700"
-          }`}
-        >
-          Corbeille ({jobs.filter((j) => j.status === "TRASH").length})
-        </button>
+    <>
+      {/* Page Header (Desktop) - Hidden on mobile */}
+      <div className="hidden md:flex items-end justify-between mb-8">
+        <div>
+          <h2 className="text-3xl font-bold text-slate-900 tracking-tight">Historique</h2>
+          <p className="text-slate-500 text-sm mt-2 font-medium">
+             Retrouvez vos décisions passées.
+          </p>
+        </div>
       </div>
 
-      {displayJobs.length === 0 ? (
-        <div className="text-center py-12 text-gray-400">
-          <div className="bg-gray-50 inline-block p-4 rounded-full mb-3">
-            {subTab === "SAVED" ? (
-              <Bookmark size={32} />
-            ) : (
-              <Trash2 size={32} />
-            )}
-          </div>
-          <p>Aucune offre ici pour le moment.</p>
+      <div>
+        <div className="flex p-1 bg-slate-200/50 backdrop-blur-sm rounded-xl mb-6">
+          <button
+            onClick={() => setSubTab("SAVED")}
+            className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${
+              subTab === "SAVED"
+                ? "bg-white text-slate-900 shadow-sm"
+                : "text-slate-500 hover:text-slate-700"
+            }`}
+          >
+            Sauvegardés ({jobs.filter((j) => j.status === "SAVED").length})
+          </button>
+          <button
+            onClick={() => setSubTab("TRASH")}
+            className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${
+              subTab === "TRASH"
+                ? "bg-white text-slate-900 shadow-sm"
+                : "text-slate-500 hover:text-slate-700"
+            }`}
+          >
+            Corbeille ({jobs.filter((j) => j.status === "TRASH").length})
+          </button>
         </div>
-      ) : (
-        displayJobs.map((job) => (
-          <JobCard key={job.id} job={job} showActions={false} />
-        ))
-      )}
-    </div>
+
+        {displayJobs.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center animate-enter">
+            <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center shadow-soft mb-6 text-slate-300">
+              {subTab === "SAVED" ? (
+                <Bookmark size={48} strokeWidth={1.5} />
+              ) : (
+                <Trash2 size={48} strokeWidth={1.5} />
+              )}
+            </div>
+            <p className="text-slate-500">Aucune offre ici pour le moment.</p>
+          </div>
+        ) : (
+          <div className="space-y-3 md:space-y-4">
+            {displayJobs.map((job, index) => (
+              <JobCard key={job.id} job={job} showActions={false} index={index} />
+            ))}
+          </div>
+        )}
+      </div>
+    </>
   );
 }
