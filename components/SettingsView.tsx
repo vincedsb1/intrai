@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { CheckCircle, ShieldAlert, X } from "lucide-react";
+import { Zap, ShieldAlert, X, Plus } from "lucide-react";
 
 interface SettingsViewProps {
   initialData: {
@@ -62,101 +62,72 @@ export default function SettingsView({ initialData }: SettingsViewProps) {
   };
 
   return (
-    <div className="space-y-6 pb-20">
-      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-100">
-        <h2 className="text-lg font-bold text-gray-800 mb-2">Le Cerveau</h2>
-        <p className="text-sm text-gray-600">
-          Configurez ici les règles qui trient automatiquement votre Inbox.
-        </p>
-      </div>
-
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-enter pb-32">
+        
       {/* Whitelist Section */}
-      <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-green-700 flex items-center">
-            <CheckCircle size={18} className="mr-2" /> Whitelist (Cibles)
-          </h3>
-          <span className="text-xs bg-green-50 text-green-700 px-2 py-1 rounded-full">
-            {whitelist.length} règles
-          </span>
+      <div className="bg-white p-8 rounded-3xl shadow-soft border border-slate-100 h-fit">
+        <div className="flex items-center gap-4 mb-6">
+            <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl"><Zap size={24}/></div>
+            <div>
+                <h3 className="font-bold text-lg text-slate-900">Mots-clés Automatiques</h3>
+                <p className="text-sm text-slate-500">Ces offres seront automatiquement traitées.</p>
+            </div>
+        </div>
+        
+        <div className="flex flex-wrap gap-2 mb-6">
+            {whitelist.map(t => (
+                <span key={t} className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium flex items-center gap-2 group hover:bg-red-50 hover:border-red-200 hover:text-red-600 cursor-pointer transition-colors" onClick={() => removeWhitelist(t)}>
+                    {t} <X size={14} className="opacity-50 group-hover:opacity-100" />
+                </span>
+            ))}
         </div>
 
-        <div className="flex flex-wrap gap-2 mb-4 min-h-[40px]">
-          {whitelist.map((term) => (
-            <span
-              key={term}
-              className="px-3 py-1.5 bg-white text-gray-700 rounded-lg text-sm border border-green-200 shadow-sm flex items-center group"
-            >
-              {term}
-              <button
-                onClick={() => removeWhitelist(term)}
-                className="ml-2 text-green-300 hover:text-red-500 transition-colors cursor-pointer"
-              >
-                <X size={12} />
-              </button>
-            </span>
-          ))}
-        </div>
         <div className="flex gap-2">
-          <input
-            value={newWhitelistTerm}
-            onChange={(e) => setNewWhitelistTerm(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && addWhitelist()}
-            placeholder="Ajouter un mot-clé cible..."
-            className="flex-1 px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
-          />
-          <button
-            onClick={addWhitelist}
-            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer"
-          >
-            Ajouter
-          </button>
+            <input 
+                value={newWhitelistTerm}
+                onChange={(e) => setNewWhitelistTerm(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && addWhitelist()}
+                placeholder="Ajouter un mot-clé..." 
+                className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+            />
+            <button onClick={addWhitelist} className="w-10 h-10 flex items-center justify-center bg-blue-600 text-white rounded-xl hover:bg-blue-700 active:scale-95 transition-all">
+                <Plus size={20} />
+            </button>
         </div>
       </div>
 
       {/* Blacklist Section */}
-      <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-red-700 flex items-center">
-            <ShieldAlert size={18} className="mr-2" /> Blacklist (Exclusions)
-          </h3>
-          <span className="text-xs bg-red-50 text-red-700 px-2 py-1 rounded-full">
-            {blacklist.length} règles
-          </span>
+      <div className="bg-white p-8 rounded-3xl shadow-soft border border-slate-100 h-fit">
+        <div className="flex items-center gap-4 mb-6">
+            <div className="p-3 bg-red-50 text-red-600 rounded-2xl"><ShieldAlert size={24}/></div>
+            <div>
+                <h3 className="font-bold text-lg text-slate-900">Mots-clés Bloqués</h3>
+                <p className="text-sm text-slate-500">Ces offres seront ignorées.</p>
+            </div>
+        </div>
+        
+        <div className="flex flex-wrap gap-2 mb-6">
+            {blacklist.map(t => (
+                <span key={t} className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium flex items-center gap-2 group hover:bg-red-50 hover:border-red-200 hover:text-red-600 cursor-pointer transition-colors" onClick={() => removeBlacklist(t)}>
+                    {t} <X size={14} className="opacity-50 group-hover:opacity-100" />
+                </span>
+            ))}
         </div>
 
-        <div className="flex flex-wrap gap-2 mb-4 min-h-[40px]">
-          {blacklist.map((term) => (
-            <span
-              key={term}
-              className="px-3 py-1.5 bg-white text-gray-700 rounded-lg text-sm border border-red-200 shadow-sm flex items-center"
-            >
-              {term}
-              <button
-                onClick={() => removeBlacklist(term)}
-                className="ml-2 text-red-300 hover:text-red-500 transition-colors cursor-pointer"
-              >
-                <X size={12} />
-              </button>
-            </span>
-          ))}
-        </div>
         <div className="flex gap-2">
-          <input
-            value={newBlacklistTerm}
-            onChange={(e) => setNewBlacklistTerm(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && addBlacklist()}
-            placeholder="Exclure un mot ou une entreprise..."
-            className="flex-1 px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none"
-          />
-          <button
-            onClick={addBlacklist}
-            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer"
-          >
-            Ajouter
-          </button>
+            <input 
+                value={newBlacklistTerm}
+                onChange={(e) => setNewBlacklistTerm(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && addBlacklist()}
+                placeholder="Ajouter un mot-clé..." 
+                className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all"
+            />
+            <button onClick={addBlacklist} className="w-10 h-10 flex items-center justify-center bg-red-600 text-white rounded-xl hover:bg-red-700 active:scale-95 transition-all">
+                <Plus size={20} />
+            </button>
         </div>
       </div>
+
     </div>
   );
 }

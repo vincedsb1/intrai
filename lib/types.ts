@@ -6,7 +6,7 @@ export interface AIAnalysis {
   isPlatformOrAgency: boolean;
   type: string;
   reason: string;
-  createdAt: Date;
+  createdAt: Date | string;
 }
 
 export interface CompanyAnalysis {
@@ -15,19 +15,19 @@ export interface CompanyAnalysis {
   isPlatformOrAgency: boolean;
   type: string;
   reason: string;
-  createdAt: Date;
+  createdAt: Date | string;
 }
 
 export interface LocationAnalysis {
   _id?: string;
   rawLocation: string;
   country: string;
-  createdAt: Date;
+  createdAt: Date | string;
 }
 
 export interface Job {
   id: string; // Map from _id in DB
-  createdAt: Date;
+  createdAt: Date | string;
   title: string | null;
   company: string | null;
   location: string | null;
@@ -46,12 +46,12 @@ export interface Job {
   matchedKeyword?: string | null;
   tags?: string[];
   isVisited?: boolean;
-  visitedAt?: Date | null; // Date de visite pour persistance
+  visitedAt?: Date | string | null; // Date de visite pour persistance
   aiAnalysis?: AIAnalysis | null;
 }
 
 export interface Settings {
   whitelist: string[];
   blacklist: string[];
-  updatedAt: Date;
+  updatedAt: Date | string;
 }

@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>intrai — Maquette Interactive</title>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Babel pour le JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .animate-slide-up { animation: slideUp 0.3s ease-out; }
+        @keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- SVG ICONS (INLINE) ---
+        const Icons = {
+            Inbox: ({size = 24, ...props}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>,
+            Settings: ({size = 24, ...props}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.35a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>,
+            CheckCircle: ({size = 24, ...props}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>,
+            ShieldAlert: ({size = 24, ...props}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>,
+            Trash2: ({size = 24, ...props}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>,
+            Bookmark: ({size = 24, ...props}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>,
+            EyeOff: ({size = 24, ...props}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>,
+            Search: ({size = 24, ...props}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
+            Zap: ({size = 24, ...props}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
+            Flame: ({size = 24, ...props}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>,
+            Briefcase: ({size = 24, ...props}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>,
+            Target: ({size = 24, ...props}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>,
+            AlertTriangle: ({size = 24, ...props}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
+            X: ({size = 24, ...props}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+            RotateCcw: ({size = 24, ...props}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><polyline points="3 3 3 8 8 8"/></svg>,
+            Banknote: ({size = 24, ...props}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>,
+            Globe: ({size = 24, ...props}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+        };
+
+        // --- MOCK DATA ---
+        const INITIAL_JOBS = [
+            { id: '1', title: 'Senior React Developer (Remote)', company: 'TechFlow Systems', logoUrl: 'https://placehold.co/100x100?text=TF', location: 'Paris', country: 'France', createdAt: new Date().toISOString(), category: 'TARGET', status: 'INBOX', parserGrade: 'A', workMode: 'remote', salary: '65k-85k', isEasyApply: true, isHighMatch: true, isActiveRecruiting: true, url: '#', tags: ['React', 'TypeScript'] },
+            { id: '2', title: 'Développeur Frontend Vue.js / React', company: 'Agence Digitale 360', logoUrl: null, location: 'Lyon', country: 'France', createdAt: new Date(Date.now() - 1000 * 3600 * 2).toISOString(), category: 'TARGET', status: 'INBOX', parserGrade: 'B', workMode: 'hybrid', isEasyApply: false, url: '#', tags: ['Frontend', 'Agency'] },
+            { id: '3', title: 'Mission Freelance Wordpress Urgent', company: 'Balthazar & Co', logoUrl: 'https://placehold.co/100x100?text=BC', location: 'Bordeaux', country: 'France', createdAt: new Date(Date.now() - 1000 * 3600 * 25).toISOString(), category: 'EXPLORE', status: 'INBOX', parserGrade: 'B', workMode: 'on-site', url: '#', tags: ['Wordpress'] },
+            { id: '4', title: 'Fullstack Dev // JAVA // SPRING // ANGULAR // NANTES // CDI', company: 'ESN Services', location: 'Nantes', country: 'France', createdAt: new Date(Date.now() - 1000 * 3600 * 26).toISOString(), category: 'EXPLORE', status: 'INBOX', parserGrade: 'C', rawString: 'Fullstack Dev // JAVA // SPRING // ANGULAR // NANTES // CDI - ESN Services', aiAnalysis: { isPlatformOrAgency: true, type: 'Cabinet de Recrutement / ESN', reason: "Nom d'entreprise associé à des services ESN." }, url: '#', tags: [] },
+            { id: '5', title: 'Stage Assistant Marketing Digital', company: 'StartUp Nation', location: 'Paris', country: 'France', createdAt: new Date(Date.now() - 1000 * 3600 * 48).toISOString(), category: 'FILTERED', status: 'INBOX', parserGrade: 'A', url: '#', tags: ['Stage'] }
+        ];
+
+        const formatDateKey = (isoString) => {
+            if (!isoString) return "Date inconnue";
+            return new Date(isoString).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+        };
+
+        function JobCard({ job, visitedIds, handleVisit, handleUnvisit, moveJob, restoreJob, showActions = true, isFilteredView = false }) {
+            const isVisited = visitedIds ? visitedIds.has(job.id) : false;
+            const isMono = job.parserGrade === 'C';
+
+            return (
+                <div className={`group relative bg-white border border-gray-200 rounded-xl p-4 mb-3 transition-all duration-300 shadow-sm hover:shadow-md ${isVisited ? "opacity-60 grayscale-[0.8] bg-gray-50" : "opacity-100"} ${isMono ? "font-mono text-sm border-l-4 border-l-gray-300" : ""}`}>
+                    <div className="cursor-pointer" onClick={() => handleVisit && handleVisit(job.id)}>
+                        <div className="flex items-start gap-4 mb-3">
+                            <div className="relative shrink-0 mt-1">
+                                {job.logoUrl ? <img src={job.logoUrl} className="w-12 h-12 object-contain rounded-lg border border-gray-100 bg-white" /> : <div className="w-12 h-12 rounded-lg border border-gray-200 bg-gray-50 flex items-center justify-center font-bold text-gray-500 text-lg select-none uppercase">{job.company ? job.company.charAt(0) : '?'}</div>}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <div className="flex justify-between items-start mb-1 gap-2">
+                                    <h3 className={`font-bold text-gray-900 group-hover:text-blue-600 transition-colors leading-tight ${isMono ? "text-xs font-mono" : "text-base"}`}>{job.title || job.rawString || "Sans titre"}</h3>
+                                    <div className="flex items-center gap-1 shrink-0 ml-auto">
+                                        {isVisited && <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded font-medium mr-1 uppercase tracking-wider">Vu</span>}
+                                        {showActions && (
+                                            <div className="flex items-center gap-1">
+                                                {isVisited && handleUnvisit && <button onClick={(e) => { e.stopPropagation(); handleUnvisit(job.id); }} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"><Icons.EyeOff size={14} /></button>}
+                                                {isFilteredView ? (
+                                                    <button onClick={(e) => { e.stopPropagation(); restoreJob(job.id); }} className="flex items-center px-2 py-1 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg text-[10px] font-bold shadow-sm transition-colors uppercase tracking-tight"><Icons.RotateCcw size={10} className="mr-1"/> Repêcher</button>
+                                                ) : (
+                                                    <>
+                                                        <button onClick={(e) => { e.stopPropagation(); }} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors mr-1"><Icons.ShieldAlert size={16} /></button>
+                                                        <button onClick={(e) => { e.stopPropagation(); moveJob(job.id, 'TRASH'); }} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"><Icons.Trash2 size={16} /></button>
+                                                        <button onClick={(e) => { e.stopPropagation(); moveJob(job.id, 'SAVED'); }} className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-full transition-colors"><Icons.Bookmark size={16} /></button>
+                                                    </>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="flex items-center text-sm text-gray-500 gap-2 flex-wrap">
+                                    <span className="font-bold text-gray-700 whitespace-nowrap">{job.company || "Société inconnue"}</span>
+                                    <span className="text-gray-300">•</span>
+                                    <span className="truncate">{job.location || "Localisation inconnue"}{job.country && job.country !== job.location && `, ${job.country}`}</span>
+                                </div>
+                                <div className="flex flex-wrap gap-2 mt-2">
+                                    {job.workMode && <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium flex items-center gap-1 border ${job.workMode === 'remote' ? 'bg-indigo-50 text-indigo-700 border-indigo-100' : job.workMode === 'hybrid' ? 'bg-purple-50 text-purple-700 border-purple-100' : 'bg-gray-100 text-gray-600 border-gray-200'}`}><Icons.Briefcase size={10}/>{job.workMode === 'remote' ? 'À distance' : job.workMode === 'hybrid' ? 'Hybride' : 'Sur site'}</span>}
+                                    {job.salary && <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-green-50 text-green-700 border border-green-100 flex items-center gap-1"><Icons.Banknote size={10} />{job.salary}</span>}
+                                    {job.isActiveRecruiting && <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-orange-50 text-orange-700 border border-orange-100 flex items-center gap-1"><Icons.Flame size={10}/>Actif</span>}
+                                    {job.isEasyApply && <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-blue-50 text-blue-700 border border-blue-100 flex items-center gap-1"><Icons.Zap size={10}/>Simplifiée</span>}
+                                    {job.isHighMatch && <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-emerald-50 text-emerald-700 border border-emerald-100 flex items-center gap-1"><Icons.Target size={10}/>Top Match</span>}
+                                </div>
+                                {job.tags && job.tags.length > 0 && !isMono && (
+                                    <div className="flex gap-2 mt-3">
+                                        {job.tags.map(tag => ( <span key={tag} className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">#{tag}</span> ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                    {job.aiAnalysis?.isPlatformOrAgency && (
+                        <div className="flex items-center justify-between pt-3 border-t border-gray-100 mt-1">
+                            <div className="text-[10px] bg-red-50 text-red-600 px-2 py-1 rounded border border-red-100 font-medium flex items-center gap-1.5 shadow-sm">
+                                <Icons.AlertTriangle size={12}/> Détecté comme : {job.aiAnalysis.type} — {job.aiAnalysis.reason}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        function JobStreamApp() {
+            const [activeTab, setActiveTab] = useState('INBOX');
+            const [jobs, setJobs] = useState(INITIAL_JOBS);
+            const [visitedIds, setVisitedIds] = useState(new Set()); 
+            const [searchQuery, setSearchQuery] = useState("");
+            const [filterWorkMode, setFilterWorkMode] = useState("all");
+            const [filterEasyApply, setFilterEasyApply] = useState(false);
+            const [showUndoToast, setShowUndoToast] = useState(false);
+            const [lastTrashedJob, setLastTrashedJob] = useState(null);
+
+            const handleVisit = (id) => { const newVisited = new Set(visitedIds); newVisited.add(id); setVisitedIds(newVisited); };
+            const handleUnvisit = (id) => { const newVisited = new Set(visitedIds); newVisited.delete(id); setVisitedIds(newVisited); };
+            const moveJob = (id, newStatus) => { const jobToMove = jobs.find(j => j.id === id); if (!jobToMove) return; if (newStatus === 'TRASH') { setLastTrashedJob(jobToMove); setShowUndoToast(true); setTimeout(() => setShowUndoToast(false), 5000); } setJobs(jobs.map(j => j.id === id ? { ...j, status: newStatus } : j)); };
+            const handleUndoTrash = () => { if (!lastTrashedJob) return; setJobs(jobs.map(j => j.id === lastTrashedJob.id ? { ...j, status: 'INBOX' } : j)); setLastTrashedJob(null); setShowUndoToast(false); };
+            const bulkCleanVisited = () => { const idsToTrash = jobs.filter(j => j.status === 'INBOX' && visitedIds.has(j.id)).map(j => j.id); setJobs(jobs.map(j => idsToTrash.includes(j.id) ? { ...j, status: 'TRASH' } : j)); setVisitedIds(new Set()); };
+            const restoreJob = (id) => { setJobs(jobs.map(j => j.id === id ? { ...j, status: 'INBOX', category: 'EXPLORE' } : j)); };
+
+            const baseInboxJobs = jobs.filter(j => j.status === 'INBOX' && j.category !== 'FILTERED');
+            const filteredJobsForInbox = baseInboxJobs.filter(j => { if (searchQuery && !j.title.toLowerCase().includes(searchQuery.toLowerCase())) return false; if (filterWorkMode !== 'all' && j.workMode !== filterWorkMode) return false; if (filterEasyApply && !j.isEasyApply) return false; return true; });
+            const groupedJobs = filteredJobsForInbox.reduce((acc, job) => { const dateKey = formatDateKey(job.createdAt); if (!acc[dateKey]) acc[dateKey] = []; acc[dateKey].push(job); return acc; }, {});
+            const visitedCount = baseInboxJobs.filter(j => visitedIds.has(j.id)).length;
+
+            return (
+                <div className="min-h-screen pb-20 bg-slate-50">
+                    <header className="bg-white sticky top-0 z-10 shadow-sm border-b">
+                        <div className="max-w-3xl mx-auto px-4 h-16 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center text-white font-bold shadow-md">I</div>
+                                <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600 hidden sm:block">intrai</h1>
+                            </div>
+                            <nav className="flex bg-gray-50 p-1 rounded-lg">
+                                {[{id:'INBOX', icon:'Inbox', label:'Inbox'}, {id:'PROCESSED', icon:'CheckCircle', label:'Traitées'}, {id:'FILTERED', icon:'ShieldAlert', label:'Filtrés'}, {id:'SETTINGS', icon:'Settings', label:'Réglages'}].map(tab => {
+                                    const TabIcon = Icons[tab.icon];
+                                    return ( <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`px-4 py-2 rounded-md text-xs font-medium flex items-center transition-all ${activeTab === tab.id ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}> <TabIcon size={18} className="sm:mr-2"/> <span className="hidden sm:inline">{tab.label}</span> </button> );
+                                })}
+                            </nav>
+                        </div>
+                    </header>
+                    <main className="max-w-3xl mx-auto p-4 sm:p-6">
+                        {activeTab === 'INBOX' && (
+                            <div>
+                                <div className="flex justify-between items-end mb-6 px-1">
+                                    <div><h2 className="text-lg font-bold text-gray-800">Flux entrant</h2><p className="text-xs text-gray-500">Sources centralisées ici.</p></div>
+                                    <span className="text-xs font-medium bg-gray-100 px-2 py-1 rounded text-gray-600">{filteredJobsForInbox.length} offres</span>
+                                </div>
+                                <div className="mb-6 relative group">
+                                    <Icons.Search size={16} className="absolute left-3 top-3 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
+                                    <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Rechercher un poste ou une entreprise..." className="block w-full pl-10 pr-10 py-2.5 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-sm transition-all placeholder-gray-400" />
+                                </div>
+                                <div className="flex flex-wrap gap-2 mb-8 overflow-x-auto pb-2 scrollbar-hide">
+                                    <div className="flex bg-gray-100 p-1 rounded-lg">
+                                        {['all', 'remote', 'hybrid', 'on-site'].map(m => ( <button key={m} onClick={() => setFilterWorkMode(m)} className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${filterWorkMode === m ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>{m === 'all' ? 'Tous' : m === 'remote' ? 'À distance' : m === 'hybrid' ? 'Hybride' : 'Sur site'}</button> ))}
+                                    </div>
+                                    <button onClick={() => setFilterEasyApply(!filterEasyApply)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${filterEasyApply ? 'bg-blue-50 border-blue-200 text-blue-700 font-bold' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}><Icons.Zap size={14} className={filterEasyApply ? "fill-current" : ""}/> Candidature simplifiée</button>
+                                    <div className="relative"> <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none text-gray-400"><Icons.Globe size={14} /></div> <select className="pl-8 pr-8 py-1.5 rounded-lg text-xs font-medium border border-gray-200 bg-white text-gray-700 cursor-pointer appearance-none outline-none focus:ring-2 focus:ring-blue-500/20"> <option>Tous les pays</option> <option>France</option> </select> </div>
+                                </div>
+                                <div className="space-y-8">
+                                    {Object.keys(groupedJobs).map(dateKey => (
+                                        <div key={dateKey}>
+                                            <div className="flex items-center gap-2 mb-3 px-1"> <span className="text-xs font-bold text-gray-400 uppercase tracking-wider bg-gray-50 px-2 py-1 rounded">{dateKey}</span> <div className="h-[1px] bg-gray-100 flex-1"></div> </div>
+                                            <div className="space-y-1"> {groupedJobs[dateKey].map(j => <JobCard key={j.id} job={j} visitedIds={visitedIds} handleVisit={handleVisit} handleUnvisit={handleUnvisit} moveJob={moveJob} />)} </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                        {activeTab === 'PROCESSED' && ( <div className="space-y-3"> {jobs.filter(j => j.status === 'SAVED' || j.status === 'TRASH').map(j => ( <JobCard key={j.id} job={j} showActions={false} /> ))} </div> )}
+                        {activeTab === 'FILTERED' && ( <div className="space-y-3"> {jobs.filter(j => j.category === 'FILTERED').map(j => ( <JobCard key={j.id} job={j} isFilteredView={true} restoreJob={restoreJob} /> ))} </div> )}
+                        {activeTab === 'SETTINGS' && (
+                            <div className="space-y-6">
+                                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-100"><h2 className="text-lg font-bold text-gray-800">Le Cerveau</h2><p className="text-sm text-gray-600">Configuration du tri automatique.</p></div>
+                                <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+                                    <div className="flex items-center justify-between mb-4"> <h3 className="font-semibold text-green-700 flex items-center"><Icons.CheckCircle size={18} className="mr-2"/> Whitelist</h3> <span className="text-xs bg-green-50 text-green-700 px-2 py-1 rounded-full">3 règles</span> </div>
+                                    <div className="flex flex-wrap gap-2"> {['React', 'TypeScript', 'Node.js'].map(t => ( <span key={t} className="px-3 py-1.5 bg-white border border-green-100 rounded-lg text-sm flex items-center shadow-sm font-medium group">{t} <button className="ml-2 text-green-300 hover:text-red-500 transition-colors"><Icons.X size={12} /></button> </span> ))} </div>
+                                </div>
+                            </div>
+                        )}
+                    </main>
+                    <div className="fixed bottom-8 left-0 right-0 flex flex-col items-center gap-3 px-4 pointer-events-none">
+                        {showUndoToast && ( <div className="pointer-events-auto flex items-center bg-gray-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl border border-gray-800 animate-slide-up min-w-[300px] justify-between"> <div className="flex items-center gap-3"> <div className="w-8 h-8 bg-gray-800 rounded-lg flex items-center justify-center text-red-400"><Icons.Trash2 size={16} /></div> <span className="text-sm font-medium">Annonce supprimée</span> </div> <button onClick={handleUndoTrash} className="text-xs font-bold text-blue-400 uppercase tracking-widest hover:text-blue-300 ml-6">Annuler</button> </div> )}
+                        {visitedCount > 0 && activeTab === 'INBOX' && ( <div className="pointer-events-auto flex items-center bg-gray-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl border border-gray-800 animate-slide-up min-w-[300px] justify-between"> <div className="flex items-center gap-3"> <div className="w-8 h-8 bg-gray-800 rounded-lg flex items-center justify-center text-blue-400"><Icons.CheckCircle size={16} /></div> <span className="text-sm font-medium">{visitedCount} offres visitées</span> </div> <button onClick={bulkCleanVisited} className="text-xs font-bold text-blue-400 uppercase tracking-widest hover:text-blue-300 ml-6">Nettoyer</button> </div> )}
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<JobStreamApp />);
+    </script>
+</body>
+</html>

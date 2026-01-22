@@ -18,10 +18,17 @@ export async function getJobs(filters: { status?: JobStatus; category?: JobCateg
     .toArray();
 
   return items.map((item) => {
-    const { _id, ...rest } = item;
+    const { _id, createdAt, visitedAt, updatedAt, aiAnalysis, ...rest } = item;
     return {
       ...rest,
       id: _id.toString(),
+      createdAt: createdAt ? new Date(createdAt).toISOString() : null,
+      updatedAt: updatedAt ? new Date(updatedAt).toISOString() : null,
+      visitedAt: visitedAt ? new Date(visitedAt).toISOString() : null,
+      aiAnalysis: aiAnalysis ? {
+        ...aiAnalysis,
+        createdAt: aiAnalysis.createdAt ? new Date(aiAnalysis.createdAt).toISOString() : null
+      } : null
     };
   }) as unknown as Job[];
 }
