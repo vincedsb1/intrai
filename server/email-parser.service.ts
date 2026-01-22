@@ -138,9 +138,17 @@ function parseLinkedInHTML(html: string): ParsedJob[] {
         title = rawTitle;
         url = $titleLink.attr('href') || "";
         
+        // Nettoyage URL LinkedIn (on garde avant le ?)
         if (url.includes('?')) {
-           const match = url.match(/(.*jobs\/view\/\d+\/)/);
-           if (match) url = match[1];
+           // On veut garder https://www.linkedin.com/comm/jobs/view/123456789
+           // Regex amélioré : cherche jobs/view/CHIFFRES et s'arrête là (ignorant le slash final optionnel)
+           const match = url.match(/(.*jobs\/view\/\d+)\/?/);
+           if (match) {
+             url = match[1];
+           } else {
+             // Fallback brutal : on coupe au ?
+             url = url.split('?')[0];
+           }
         }
       }
 
