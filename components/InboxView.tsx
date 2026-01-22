@@ -1,11 +1,10 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useTransition } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { Inbox } from "lucide-react";
 import JobCard from "./JobCard";
 import BlacklistModal from "./BlacklistModal";
-import AiDetectiveModal from "./AiDetectiveModal";
 import FilterBar from "./FilterBar";
 import Toast from "./Toast";
 import { Job, JobStatus } from "@/lib/types";
@@ -18,16 +17,17 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [isPending, startTransition] = useTransition();
 
   const [jobs, setJobs] = useState<Job[]>(initialJobs);
   
-  // Filters State
-  const searchQuery = searchParams.get("q") || "";
-  const filterWorkMode = searchParams.get("mode") || "all";
-  const filterEasyApply = searchParams.get("easy") === "true";
-  const filterCountry = searchParams.get("country") || "all";
+  // Filters State - Initialized from URL but managed locally for instant UI
+  const [searchQuery, setSearchQuery] = useState(searchParams.get("q") || "");
+  const [filterWorkMode, setFilterWorkMode] = useState(searchParams.get("mode") || "all");
+  const [filterEasyApply, setFilterEasyApply] = useState(searchParams.get("easy") === "true");
+  const [filterCountry, setFilterCountry] = useState(searchParams.get("country") || "all");
   
-  // URL Params Updater
+  // URL Params Updater wrapped in Transition
   const updateUrlParams = (key: string, value: string | null) => {
     const current = new URLSearchParams(Array.from(searchParams.entries()));
     if (!value || value === "all" || value === "false") {
@@ -37,21 +37,55 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
     }
     const search = current.toString();
     const query = search ? `?${search}` : "";
-    router.replace(`${pathname}${query}`, { scroll: false });
+    
+    startTransition(() => {
+      router.replace(`${pathname}${query}`, { scroll: false });
+    });
   };
 
-  // Handlers
+  // Handlers - Optimistic updates
   const handleModeChange = (val: string) => {
+    setFilterWorkMode(val); // Instant UI update
     updateUrlParams("mode", val);
   };
 
   const handleEasyChange = (val: boolean) => {
+    setFilterEasyApply(val); // Instant UI update
     updateUrlParams("easy", val ? "true" : "false");
   };
 
   const handleCountryChange = (val: string) => {
+    setFilterCountry(val); // Instant UI update
     updateUrlParams("country", val);
   };
+
+  const handleClearFilters = () => {
+    // Instant UI reset
+    setSearchQuery("");
+    setFilterWorkMode("all");
+    setFilterEasyApply(false);
+    setFilterCountry("all");
+    
+    // Background URL update
+    updateUrlParams("q", null);
+    handleModeChange("all");
+    handleEasyChange(false);
+    handleCountryChange("all"); 
+    // Optimization: we could batch these URL updates but `updateUrlParams` logic above 
+    // isn't designed for batching easily without refactoring. 
+    // Given the transition, multiple replace calls might be merged by Next.js or just execute fast enough.
+    // For a cleaner reset:
+    const current = new URLSearchParams(); // Clear all
+    startTransition(() => {
+        router.replace(`${pathname}`, { scroll: false });
+    });
+  };
+
+  const isAnyFilterActive = 
+    searchQuery !== "" || 
+    filterWorkMode !== "all" || 
+    filterEasyApply || 
+    filterCountry !== "all";
   
   // Local State
   const [visitedIds, setVisitedIds] = useState<Set<string>>(() => {
@@ -64,8 +98,6 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
     return initialVisited;
   });
   
-  const [analyzingJobId, setAnalyzingJobId] = useState<string | null>(null);
-  const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [isBlacklistModalOpen, setIsBlacklistModalOpen] = useState(false);
   const [blacklistTerm, setBlacklistTerm] = useState("");
 
@@ -74,10 +106,39 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
   const [lastTrashedJob, setLastTrashedJob] = useState<Job | null>(null);
   const [showBulkCleanToast, setShowBulkCleanToast] = useState(true);
 
+  const handleBlacklistConfirm = async (term: string) => {
+    try {
+      const res = await fetch("/api/ai/ban-author", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ company: term }),
+      });
+
+      if (!res.ok) throw new Error("Failed to blacklist");
+
+      // Optimistic update
+      setJobs(jobs.filter((j) => j.company !== term));
+      setIsBlacklistModalOpen(false);
+      setToast({ msg: `Auteur "${term}" banni`, type: 'trash' });
+      
+      setTimeout(() => {
+        setToast((current) => current?.msg.includes(term) ? null : current);
+      }, 4000);
+    } catch (error) {
+      console.error("Error blacklisting:", error);
+      alert("Erreur lors du filtrage");
+    }
+  };
+
   // --- Filtering Logic ---
   const baseInboxJobs = jobs.filter(
     (j) => j.status === "INBOX" && j.category !== "FILTERED"
   );
+
+  // Extract available countries dynamically
+  const availableCountries = Array.from(
+    new Set(baseInboxJobs.map((j) => j.country).filter((c): c is string => !!c))
+  ).sort();
 
   const inboxJobs = baseInboxJobs.filter((job) => {
     if (searchQuery.trim()) {
@@ -94,7 +155,6 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
   });
 
   const visitedCount = baseInboxJobs.filter((j) => visitedIds.has(j.id)).length;
-  const currentAnalyzingJob = jobs.find((j) => j.id === analyzingJobId) || null;
 
   // Actions
   const handleVisit = async (id: string) => {
@@ -176,8 +236,14 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
   // Grouping
   const groupedJobs = inboxJobs.reduce((acc, job) => {
     const dateKey = job.createdAt
-      ? new Date(job.createdAt).toLocaleDateString("fr-FR", { day: "numeric", month: "long" })
+      ? new Date(job.createdAt).toLocaleDateString("fr-FR", { 
+          day: "numeric", 
+          month: "long", 
+          hour: "2-digit", 
+          minute: "2-digit" 
+        }).replace(":", "h")
       : "Date inconnue";
+    
     if (!acc[dateKey]) acc[dateKey] = [];
     acc[dateKey].push(job);
     return acc;
@@ -208,6 +274,9 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
             setFilterEasyApply={handleEasyChange}
             filterCountry={filterCountry}
             setFilterCountry={handleCountryChange}
+            availableCountries={availableCountries}
+            isAnyFilterActive={isAnyFilterActive}
+            onClearFilters={handleClearFilters}
         />
 
         {/* Empty State */}
@@ -219,14 +288,14 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
                 <h3 className="text-xl font-bold text-slate-900">Aucun résultat</h3>
                 <p className="text-slate-500 mt-2 max-w-xs mx-auto">Essayez de modifier vos filtres ou revenez plus tard.</p>
                 <button 
-                    onClick={() => { updateUrlParams("q", null); handleModeChange("all"); handleEasyChange(false); handleCountryChange("all"); }} 
+                    onClick={handleClearFilters}
                     className="mt-6 text-sm font-bold text-blue-600 hover:underline"
                 >
                     Réinitialiser les filtres
                 </button>
             </div>
         ) : (
-            <div className="space-y-8">
+            <div className={`space-y-8 transition-opacity duration-200 ${isPending ? 'opacity-50' : 'opacity-100'}`}>
                 {groupKeys.map((dateKey, dateIndex) => (
                     <div key={dateKey} className="animate-enter" style={{ animationDelay: `${dateIndex * 100}ms` }}>
                         <div className="flex items-center gap-4 mb-5 px-1">
@@ -244,7 +313,6 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
                                     onBlacklist={() => { setBlacklistTerm(job.company || ""); setIsBlacklistModalOpen(true); }}
                                     onSave={(id) => handleMoveJob(id, "SAVED")}
                                     onTrash={(id) => handleMoveJob(id, "TRASH")}
-                                    onAnalyze={(id) => { setAnalyzingJobId(id); setIsAiModalOpen(true); }}
                                 />
                             ))}
                         </div>
@@ -273,22 +341,11 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
         )}
 
         {/* Modals */}
-        <AiDetectiveModal
-            isOpen={isAiModalOpen}
-            onClose={() => setIsAiModalOpen(false)}
-            job={currentAnalyzingJob}
-            onBan={(company) => {
-                 // Logic would go here
-            }}
-        />
-
         <BlacklistModal
             isOpen={isBlacklistModalOpen}
             onClose={() => setIsBlacklistModalOpen(false)}
             initialTerm={blacklistTerm}
-            onConfirm={async (term) => {
-                 // Logic would go here
-            }}
+            onConfirm={handleBlacklistConfirm}
         />
     </>
   );

@@ -20,7 +20,6 @@ interface JobCardProps {
   onSave?: (id: string) => void;
   onTrash?: (id: string) => void;
   onRestore?: (id: string) => void;
-  onAnalyze?: (id: string) => void;
   showActions?: boolean;
   isFilteredView?: boolean;
   index?: number;
@@ -37,6 +36,7 @@ export default function JobCard({
   job,
   isVisited = false,
   onVisit,
+  onUnvisit,
   onBlacklist,
   onSave,
   onTrash,
@@ -87,13 +87,13 @@ export default function JobCard({
             )}
         </div>
 
-        {/* CONTENT */}
-        <div className="flex-1 min-w-0 flex flex-col gap-1.5">
-            <div className="flex justify-between items-start gap-3">
-                <h3 className={`font-bold text-slate-900 leading-snug group-hover:text-blue-600 transition-colors pr-8 md:pr-14 ${isMono ? 'font-mono text-xs' : 'text-[15px] md:text-base'}`}>
-                    {job.title || job.rawString}
-                </h3>
-            </div>
+                        {/* Content */}
+                        <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+                            <div className="flex justify-between items-start gap-3">
+                                <h3 className={`font-bold text-slate-900 leading-snug group-hover:text-blue-600 transition-colors pr-10 md:pr-24 ${isMono ? 'font-mono text-xs' : 'text-[15px] md:text-base'}`}>
+                                    {job.title || job.rawString}
+                                </h3>
+                            </div>
             
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs md:text-sm text-slate-500">
                 <span className="font-semibold text-slate-700">{job.company}</span>
@@ -135,21 +135,22 @@ export default function JobCard({
 
         {/* ACTIONS */}
         {showActions && (
-            <div className="absolute top-5 right-4 flex flex-row md:flex-col gap-2 z-10">
-                {/* Mobile: Always visible */}
-                <div className="flex md:hidden gap-2">
+            <>
+                {/* Mobile: Always visible, top-right */}
+                <div className="absolute top-5 right-4 flex md:hidden gap-2 z-10">
                      {isFilteredView ? (
                         <button onClick={(e) => { e.stopPropagation(); onRestore && onRestore(job.id); }} className="w-9 h-9 flex items-center justify-center rounded-full bg-slate-50 border border-slate-200 text-slate-600 active:bg-blue-50 active:text-blue-600 transition-colors">R</button>
                      ) : (
                         <>
-                            <button onClick={(e) => { e.stopPropagation(); onSave && onSave(job.id); }} className="w-9 h-9 flex items-center justify-center rounded-full bg-slate-50 border border-slate-200 text-slate-400 active:bg-blue-50 active:text-blue-600 transition-colors"><Bookmark size={18} /></button>
-                            <button onClick={(e) => { e.stopPropagation(); onTrash && onTrash(job.id); }} className="w-9 h-9 flex items-center justify-center rounded-full bg-slate-50 border border-slate-200 text-slate-400 active:bg-red-50 active:text-red-600 transition-colors"><Trash2 size={18} /></button>
+                            <button onClick={(e) => { e.stopPropagation(); onBlacklist && onBlacklist(job.company || ""); }} className="w-9 h-9 flex items-center justify-center rounded-full bg-slate-50 border border-slate-200 text-slate-400 active:bg-red-50 active:text-red-600 transition-colors" title="Filtrer"><ShieldAlert size={18} /></button>
+                            <button onClick={(e) => { e.stopPropagation(); onSave && onSave(job.id); }} className="w-9 h-9 flex items-center justify-center rounded-full bg-slate-50 border border-slate-200 text-slate-400 active:bg-blue-50 active:text-blue-600 transition-colors" title="Sauvegarder"><Bookmark size={18} /></button>
+                            <button onClick={(e) => { e.stopPropagation(); onTrash && onTrash(job.id); }} className="w-9 h-9 flex items-center justify-center rounded-full bg-slate-50 border border-slate-200 text-slate-400 active:bg-red-50 active:text-red-600 transition-colors" title="Ignorer"><Trash2 size={18} /></button>
                         </>
                      )}
                 </div>
 
-                {/* Desktop: Hover visible */}
-                <div className="hidden md:flex flex-col gap-2 opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 transition-all duration-200 ease-out">
+                {/* Desktop: Hover visible, centered vertically */}
+                <div className="hidden md:grid md:grid-cols-2 gap-2 opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 transition-all duration-200 ease-out absolute top-1/2 right-4 -translate-y-1/2 z-10">
                     {isFilteredView ? (
                          <button 
                             onClick={(e) => { e.stopPropagation(); onRestore && onRestore(job.id); }}
@@ -160,6 +161,13 @@ export default function JobCard({
                         </button>
                     ) : (
                         <>
+                                                    <button 
+                                onClick={(e) => { e.stopPropagation(); onBlacklist && onBlacklist(job.company || ""); }}
+                                className="w-9 h-9 flex items-center justify-center rounded-full bg-white border border-slate-200 text-slate-400 hover:text-red-600 hover:border-red-200 hover:bg-red-50 shadow-sm transition-all"
+                                title="Filtrer l'entreprise"
+                            >
+                                <ShieldAlert size={16} />
+                            </button>
                             <button 
                                 onClick={(e) => { e.stopPropagation(); onSave && onSave(job.id); }}
                                 className="w-9 h-9 flex items-center justify-center rounded-full bg-white border border-slate-200 text-slate-400 hover:text-emerald-600 hover:border-emerald-200 hover:bg-emerald-50 shadow-sm transition-all"
@@ -177,7 +185,7 @@ export default function JobCard({
                         </>
                     )}
                 </div>
-            </div>
+            </>
         )}
 
       </div>
