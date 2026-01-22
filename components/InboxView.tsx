@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useTransition } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { Inbox } from "lucide-react";
 import JobCard from "./JobCard";
@@ -18,16 +18,17 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [isPending, startTransition] = useTransition();
 
   const [jobs, setJobs] = useState<Job[]>(initialJobs);
   
-  // Filters State
-  const searchQuery = searchParams.get("q") || "";
-  const filterWorkMode = searchParams.get("mode") || "all";
-  const filterEasyApply = searchParams.get("easy") === "true";
-  const filterCountry = searchParams.get("country") || "all";
+  // Filters State - Initialized from URL but managed locally for instant UI
+  const [searchQuery, setSearchQuery] = useState(searchParams.get("q") || "");
+  const [filterWorkMode, setFilterWorkMode] = useState(searchParams.get("mode") || "all");
+  const [filterEasyApply, setFilterEasyApply] = useState(searchParams.get("easy") === "true");
+  const [filterCountry, setFilterCountry] = useState(searchParams.get("country") || "all");
   
-  // URL Params Updater
+  // URL Params Updater wrapped in Transition
   const updateUrlParams = (key: string, value: string | null) => {
     const current = new URLSearchParams(Array.from(searchParams.entries()));
     if (!value || value === "all" || value === "false") {
@@ -37,27 +38,48 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
     }
     const search = current.toString();
     const query = search ? `?${search}` : "";
-    router.replace(`${pathname}${query}`, { scroll: false });
+    
+    startTransition(() => {
+      router.replace(`${pathname}${query}`, { scroll: false });
+    });
   };
 
-  // Handlers
+  // Handlers - Optimistic updates
   const handleModeChange = (val: string) => {
+    setFilterWorkMode(val); // Instant UI update
     updateUrlParams("mode", val);
   };
 
   const handleEasyChange = (val: boolean) => {
+    setFilterEasyApply(val); // Instant UI update
     updateUrlParams("easy", val ? "true" : "false");
   };
 
   const handleCountryChange = (val: string) => {
+    setFilterCountry(val); // Instant UI update
     updateUrlParams("country", val);
   };
 
   const handleClearFilters = () => {
+    // Instant UI reset
+    setSearchQuery("");
+    setFilterWorkMode("all");
+    setFilterEasyApply(false);
+    setFilterCountry("all");
+    
+    // Background URL update
     updateUrlParams("q", null);
     handleModeChange("all");
     handleEasyChange(false);
-    handleCountryChange("all");
+    handleCountryChange("all"); 
+    // Optimization: we could batch these URL updates but `updateUrlParams` logic above 
+    // isn't designed for batching easily without refactoring. 
+    // Given the transition, multiple replace calls might be merged by Next.js or just execute fast enough.
+    // For a cleaner reset:
+    const current = new URLSearchParams(); // Clear all
+    startTransition(() => {
+        router.replace(`${pathname}`, { scroll: false });
+    });
   };
 
   const isAnyFilterActive = 
@@ -278,7 +300,7 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
                 </button>
             </div>
         ) : (
-            <div className="space-y-8">
+            <div className={`space-y-8 transition-opacity duration-200 ${isPending ? 'opacity-50' : 'opacity-100'}`}>
                 {groupKeys.map((dateKey, dateIndex) => (
                     <div key={dateKey} className="animate-enter" style={{ animationDelay: `${dateIndex * 100}ms` }}>
                         <div className="flex items-center gap-4 mb-5 px-1">

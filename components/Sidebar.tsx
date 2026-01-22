@@ -1,15 +1,23 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Inbox, CheckCircle, ShieldAlert, Settings, Zap } from "lucide-react";
+import { Inbox, CheckCircle, ShieldAlert, Settings } from "lucide-react";
 
 export default function Sidebar() {
   const pathname = usePathname();
+  
+  // Optimistic State for Active Tab
+  const [activeTab, setActiveTab] = useState(pathname);
+
+  // Sync state when pathname actually changes (e.g. browser back button)
+  useEffect(() => {
+    setActiveTab(pathname);
+  }, [pathname]);
 
   const tabs = [
-    { id: "inbox", href: "/inbox", icon: Inbox, label: "Flux entrant", count: 3 }, // Count hardcoded for now or passed via props
+    { id: "inbox", href: "/inbox", icon: Inbox, label: "Flux entrant", count: 3 },
     { id: "processed", href: "/processed", icon: CheckCircle, label: "Traitées" },
     { id: "filtered", href: "/filtered", icon: ShieldAlert, label: "Filtrés Auto" },
   ];
@@ -29,13 +37,15 @@ export default function Sidebar() {
       {/* Main Nav */}
       <nav className="flex-1 space-y-2">
         {tabs.map((tab) => {
-            const isActive = pathname.startsWith(tab.href);
+            // Use optimistic state for immediate feedback
+            const isActive = activeTab.startsWith(tab.href);
             const Icon = tab.icon;
             
             return (
                 <Link
                     key={tab.id}
                     href={tab.href}
+                    onClick={() => setActiveTab(tab.href)}
                     className={`
                         w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 group relative overflow-hidden
                         ${isActive ? 'bg-blue-50/80 text-blue-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}
@@ -58,14 +68,15 @@ export default function Sidebar() {
       <div className="mt-auto pt-6 border-t border-slate-100">
          <Link
             href="/settings"
+            onClick={() => setActiveTab("/settings")}
             className={`
                 w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 group relative overflow-hidden
-                ${pathname.startsWith('/settings') ? 'bg-blue-50/80 text-blue-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}
+                ${activeTab.startsWith('/settings') ? 'bg-blue-50/80 text-blue-600' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}
             `}
          >
-            <Settings size={20} className={`transition-colors relative z-10 ${pathname.startsWith('/settings') ? 'stroke-[2.5px]' : 'stroke-2'}`} />
+            <Settings size={20} className={`transition-colors relative z-10 ${activeTab.startsWith('/settings') ? 'stroke-[2.5px]' : 'stroke-2'}`} />
             <span className="relative z-10">Réglages</span>
-            {pathname.startsWith('/settings') && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-500 rounded-r-full"></div>}
+            {activeTab.startsWith('/settings') && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-500 rounded-r-full"></div>}
          </Link>
 
          <div className="mt-6 px-4 py-4 bg-slate-50/50 rounded-2xl border border-slate-100">
