@@ -8,7 +8,7 @@ export default function TabsLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col md:flex-row w-full h-screen overflow-hidden bg-[#F1F5F9]">
+    <div className="flex flex-col md:flex-row w-full h-screen overflow-hidden bg-slate-100 dark:bg-slate-950 transition-colors duration-300">
       
       {/* Sidebar (Desktop Only) */}
       <Sidebar />
@@ -23,7 +23,7 @@ export default function TabsLayout({
         <DesktopHeader />
 
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden scroll-smooth bg-[#F1F5F9]">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden scroll-smooth bg-slate-100 dark:bg-slate-950 transition-colors duration-300">
            <div className="max-w-5xl mx-auto p-4 md:p-8 pb-32">
               {children}
            </div>
