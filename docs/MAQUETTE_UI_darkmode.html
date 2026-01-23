@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>intrai — Workspace</title>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Google Fonts -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap');
+
+        :root {
+            --sidebar-width: 280px;
+            --header-height: 70px;
+        }
+
+        body { 
+            font-family: 'Inter', sans-serif; 
+            /* Light mode default bg */
+            background-color: #f5f5f4; /* Stone 100 */
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* Dark mode overrides applied via class 'dark' on html */
+        html.dark body {
+            background-color: #0c0a09; /* Stone 950 - Very dark warm grey */
+            color: #fafaf9; /* Stone 50 */
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #d6d3d1; border-radius: 3px; }
+        html.dark ::-webkit-scrollbar-thumb { background: #44403c; }
+        ::-webkit-scrollbar-thumb:hover { background: #a8a29e; }
+        html.dark ::-webkit-scrollbar-thumb:hover { background: #57534e; }
+
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+
+        /* Animations */
+        .animate-enter { animation: enter 0.5s cubic-bezier(0.16, 1, 0.3, 1) backwards; }
+        @keyframes enter { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .animate-slide-up-toast { animation: slideUpToast 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyframes slideUpToast { from { transform: translate(-50%, 100%); opacity: 0; } to { transform: translate(-50%, -24px); opacity: 1; } }
+
+        /* Utilities */
+        .glass {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(231, 229, 228, 0.8);
+        }
+        
+        html.dark .glass {
+            background: rgba(28, 25, 23, 0.85); /* Stone 900 with opacity */
+            border-bottom: 1px solid rgba(68, 64, 60, 0.5);
+        }
+
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+        .stagger-1 { animation-delay: 50ms; }
+        .stagger-2 { animation-delay: 100ms; }
+        .stagger-3 { animation-delay: 150ms; }
+
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+        .pt-safe { padding-top: env(safe-area-inset-top); }
+    </style>
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        // Replacing Slate with Stone for that "Brown/Neutral" feel
+                        slate: {
+                            50: '#fafaf9',
+                            100: '#f5f5f4',
+                            200: '#e7e5e4',
+                            300: '#d6d3d1',
+                            400: '#a8a29e',
+                            500: '#78716c',
+                            600: '#57534e',
+                            700: '#44403c',
+                            800: '#292524',
+                            900: '#1c1917', // Dark Warm Grey
+                            950: '#0c0a09', // Almost Black Brown
+                        },
+                        primary: { 50: '#eff6ff', 100: '#dbeafe', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8' },
+                    },
+                    boxShadow: {
+                        'soft': '0 2px 10px rgba(0, 0, 0, 0.03)',
+                        'hover': '0 10px 30px -5px rgba(0, 0, 0, 0.08)',
+                        'glow': '0 0 15px rgba(59, 130, 246, 0.3)'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="h-screen overflow-hidden flex flex-col md:flex-row text-slate-900 dark:text-slate-100 bg-slate-100 dark:bg-slate-950 transition-colors duration-300">
+    <div id="root" class="w-full h-full flex flex-col md:flex-row"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
+        // --- ICONS ---
+        const Icons = {
+            Inbox: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>,
+            Settings: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.35a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>,
+            CheckCircle: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>,
+            ShieldAlert: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>,
+            Trash2: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>,
+            Bookmark: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>,
+            Search: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
+            Zap: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>,
+            X: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+            Filter: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>,
+            Globe: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>,
+            Briefcase: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>,
+            Sun: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>,
+            Moon: (p) => <svg {...p} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>,
+        };
+
+        const formatDateKey = (isoString) => {
+            if (!isoString) return "Date inconnue";
+            const date = new Date(isoString);
+            const today = new Date();
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+            if (date.toDateString() === today.toDateString()) return "Aujourd'hui";
+            if (date.toDateString() === yesterday.toDateString()) return "Hier";
+            return date.toLocaleDateString("fr-FR", { day: "numeric", month: "long" });
+        };
+
+        const INITIAL_JOBS = [
+            { id: '1', title: 'Senior React Developer', company: 'TechFlow Systems', logoUrl: 'https://placehold.co/100x100/3b82f6/ffffff?text=TF', location: 'Paris', country: 'France', createdAt: new Date().toISOString(), category: 'TARGET', status: 'INBOX', parserGrade: 'A', workMode: 'remote', salary: '65k-85k', isEasyApply: true, isHighMatch: true, isActiveRecruiting: true, url: '#', tags: ['React', 'TypeScript', 'SaaS'] },
+            { id: '2', title: 'Développeur Frontend Vue.js / React', company: 'Agence Digitale 360', logoUrl: null, location: 'Lyon', country: 'France', createdAt: new Date().toISOString(), category: 'TARGET', status: 'INBOX', parserGrade: 'B', workMode: 'hybrid', isEasyApply: false, url: '#', tags: ['Frontend', 'Agency', 'Creative'] },
+            { id: '3', title: 'Mission Freelance Wordpress Urgent', company: 'Balthazar & Co', logoUrl: 'https://placehold.co/100x100/10b981/ffffff?text=BC', location: 'Bordeaux', country: 'France', createdAt: new Date(Date.now() - 1000 * 3600 * 25).toISOString(), category: 'EXPLORE', status: 'INBOX', parserGrade: 'B', workMode: 'on-site', url: '#', tags: ['Wordpress', 'PHP'] },
+            { id: '4', title: 'Fullstack Dev // JAVA // SPRING // ANGULAR // NANTES', company: 'ESN Services', location: 'Nantes', country: 'France', createdAt: new Date(Date.now() - 1000 * 3600 * 26).toISOString(), category: 'EXPLORE', status: 'INBOX', parserGrade: 'C', rawString: 'Fullstack Dev // JAVA // SPRING // ANGULAR // NANTES // CDI - ESN Services', aiAnalysis: { isPlatformOrAgency: true, type: 'Cabinet de Recrutement', reason: "ESN détectée." }, url: '#', tags: [] },
+            { id: '5', title: 'Stage Assistant Marketing Digital', company: 'StartUp Nation', location: 'Paris', country: 'France', createdAt: new Date(Date.now() - 1000 * 3600 * 48).toISOString(), category: 'FILTERED', status: 'INBOX', parserGrade: 'A', url: '#', tags: ['Stage', 'Growth'] }
+        ];
+
+        const NavButton = ({ tab, activeTab, onClick, label, icon: Icon }) => {
+            const isActive = activeTab === tab;
+            return (
+                <button 
+                    onClick={() => onClick(tab)}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 group relative overflow-hidden 
+                    ${isActive ? 'bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200'}`}
+                >
+                    <Icon size={20} className={`transition-colors relative z-10 ${isActive ? 'stroke-[2.5px]' : 'stroke-2'}`} />
+                    <span className="relative z-10">{label}</span>
+                    {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-500 rounded-r-full shadow-glow"></div>}
+                    {tab === 'INBOX' && <span className={`ml-auto text-xs font-bold px-2 py-0.5 rounded-full relative z-10 ${isActive ? 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300' : 'bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-500'}`}>3</span>}
+                </button>
+            );
+        };
+
+        const MobileNavTab = ({ tab, activeTab, onClick, label }) => {
+            const isActive = activeTab === tab;
+            return (
+                <button 
+                    onClick={() => onClick(tab)}
+                    className={`relative px-4 py-2.5 rounded-full text-sm font-medium transition-all whitespace-nowrap z-10 ${isActive ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'}`}
+                >
+                    {isActive && <span className="absolute inset-0 bg-white dark:bg-slate-700 rounded-full shadow-sm border border-slate-100 dark:border-slate-600 -z-10 animate-enter"></span>}
+                    {label}
+                </button>
+            );
+        }
+
+        const Tag = ({ text, className, icon: Icon }) => (
+            <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-semibold tracking-wide border ${className}`}>
+                {Icon && <Icon size={10} strokeWidth={1.5} className="mr-1" />}
+                {text}
+            </span>
+        );
+
+        const FilterPill = ({ label, icon: Icon, active, onClick }) => (
+            <button 
+                onClick={onClick}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all whitespace-nowrap 
+                ${active 
+                    ? 'bg-slate-900 text-white border-slate-900 dark:bg-slate-200 dark:text-slate-900 dark:border-slate-200 shadow-md transform scale-[1.02]' 
+                    : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-700'
+                }`}
+            >
+                {Icon && <Icon size={10} strokeWidth={1.5} className={active ? "text-current" : "text-slate-400 dark:text-slate-500"} />}
+                {label}
+            </button>
+        );
+
+        const ThemeToggle = ({ isDark, toggle }) => (
+            <button 
+                onClick={toggle}
+                className="w-10 h-10 rounded-xl flex items-center justify-center transition-colors
+                text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 border border-transparent dark:border-slate-700"
+                title={isDark ? "Passer en mode clair" : "Passer en mode sombre"}
+            >
+                {isDark ? <Icons.Sun size={20} /> : <Icons.Moon size={20} />}
+            </button>
+        );
+
+        const JobCard = ({ job, visitedIds, onAction, index }) => {
+            const isVisited = visitedIds.has(job.id);
+            const isMono = job.parserGrade === 'C';
+            
+            return (
+                <div 
+                    onClick={() => onAction('VISIT', job.id)}
+                    className={`group relative rounded-2xl p-5 transition-all duration-300 animate-enter border cursor-pointer stagger-${(index % 3) + 1}
+                    bg-white dark:bg-slate-900 
+                    ${isVisited 
+                        ? 'opacity-70 grayscale-[0.3] bg-slate-50 dark:bg-slate-900/40 border-slate-100 dark:border-slate-800' 
+                        : 'shadow-soft dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] border-slate-100 dark:border-slate-800 hover:border-blue-200 dark:hover:border-slate-700'
+                    }`}
+                >
+                    <div className="flex gap-4 md:gap-5 pl-1">
+                        {/* Logo */}
+                        <div className="shrink-0">
+                            {job.logoUrl ? (
+                                <img src={job.logoUrl} alt="" className="w-12 h-12 md:w-14 md:h-14 rounded-xl object-cover border border-slate-100 dark:border-slate-700 shadow-sm bg-white dark:bg-slate-800" />
+                            ) : (
+                                <div className="w-12 h-12 md:w-14 md:h-14 rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-700 border border-slate-100 dark:border-slate-700 flex items-center justify-center text-slate-400 dark:text-slate-500 font-bold text-lg shadow-inner">
+                                    {job.company?.[0] || '?'}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Content */}
+                        <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+                            <div className="flex justify-between items-start gap-3">
+                                <h3 className={`font-bold leading-snug group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors pr-8 md:pr-14 
+                                ${isMono ? 'font-mono text-xs' : 'text-[15px] md:text-base'}
+                                text-slate-900 dark:text-slate-100`}>
+                                    {job.title || job.rawString}
+                                </h3>
+                            </div>
+                            
+                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs md:text-sm text-slate-500 dark:text-slate-400">
+                                <span className="font-semibold text-slate-700 dark:text-slate-300">{job.company}</span>
+                                <span className="w-1 h-1 bg-slate-300 dark:bg-slate-600 rounded-full"></span>
+                                <span className="truncate max-w-[150px]">{job.location}</span>
+                                {job.country && job.country !== job.location && (
+                                    <>
+                                        <span className="w-1 h-1 bg-slate-300 dark:bg-slate-600 rounded-full"></span>
+                                        <span className="truncate">{job.country}</span>
+                                    </>
+                                )}
+                            </div>
+
+                            {/* Tags & Badges */}
+                            <div className="flex flex-wrap gap-2 mt-2.5 items-center">
+                                {job.workMode && (
+                                    <Tag 
+                                        text={job.workMode === 'remote' ? 'Remote' : job.workMode === 'hybrid' ? 'Hybride' : 'Bureau'} 
+                                        className={job.workMode === 'remote' 
+                                            ? 'bg-indigo-50 text-indigo-700 border-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-300 dark:border-indigo-500/20' 
+                                            : 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'}
+                                        icon={Icons.Briefcase}
+                                    />
+                                )}
+                                {job.salary && <Tag text={job.salary} className="bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-300 dark:border-emerald-500/20" />}
+                                {job.isEasyApply && <Tag text="Easy Apply" className="bg-blue-50 text-blue-700 border-blue-100 dark:bg-blue-500/10 dark:text-blue-300 dark:border-blue-500/20" icon={Icons.Zap} />}
+                                
+                                {job.tags?.slice(0, 3).map(tag => (
+                                    <span key={tag} className="text-[10px] md:text-[11px] text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 px-2 py-0.5 rounded-full">#{tag}</span>
+                                ))}
+                            </div>
+                            
+                            {/* Warning Banner */}
+                            {job.aiAnalysis?.isPlatformOrAgency && (
+                                <div className="mt-3 flex items-center justify-start gap-2 p-2.5 rounded-lg text-xs font-medium 
+                                bg-amber-50 border border-amber-100 text-amber-800 
+                                dark:bg-amber-900/20 dark:border-amber-900/30 dark:text-amber-400">
+                                    <Icons.ShieldAlert size={14} className="shrink-0 text-amber-600 dark:text-amber-500" />
+                                    <span className="leading-none mt-[1px]">{job.aiAnalysis.reason}</span>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Actions (Floating on Desktop, Static on Mobile) */}
+                        <div className="absolute top-5 right-4 flex flex-row md:flex-col gap-2 z-10">
+                            {/* Mobile: Toujours visibles */}
+                            <div className="flex md:hidden gap-2">
+                                <button onClick={(e) => { e.stopPropagation(); onAction('SAVED', job.id); }} className="w-9 h-9 flex items-center justify-center rounded-full bg-slate-50 border border-slate-200 text-slate-400 active:bg-blue-50 active:text-blue-600 transition-colors dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400 dark:active:bg-blue-900/30 dark:active:text-blue-400"><Icons.Bookmark size={18} /></button>
+                                <button onClick={(e) => { e.stopPropagation(); onAction('TRASH', job.id); }} className="w-9 h-9 flex items-center justify-center rounded-full bg-slate-50 border border-slate-200 text-slate-400 active:bg-red-50 active:text-red-600 transition-colors dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400 dark:active:bg-red-900/30 dark:active:text-red-400"><Icons.Trash2 size={18} /></button>
+                            </div>
+
+                            {/* Desktop: Visible on Hover only */}
+                            <div className="hidden md:flex flex-col gap-2 opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 transition-all duration-200 ease-out">
+                                <button 
+                                    onClick={(e) => { e.stopPropagation(); onAction('SAVED', job.id); }}
+                                    className="w-9 h-9 flex items-center justify-center rounded-full shadow-sm transition-all
+                                    bg-white border border-slate-200 text-slate-400 hover:text-emerald-600 hover:border-emerald-200 hover:bg-emerald-50
+                                    dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400 dark:hover:text-emerald-400 dark:hover:border-emerald-500/30 dark:hover:bg-emerald-500/10"
+                                    title="Sauvegarder"
+                                >
+                                    <Icons.Bookmark size={16} />
+                                </button>
+                                <button 
+                                    onClick={(e) => { e.stopPropagation(); onAction('TRASH', job.id); }}
+                                    className="w-9 h-9 flex items-center justify-center rounded-full shadow-sm transition-all
+                                    bg-white border border-slate-200 text-slate-400 hover:text-red-600 hover:border-red-200 hover:bg-red-50
+                                    dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400 dark:hover:text-red-400 dark:hover:border-red-500/30 dark:hover:bg-red-500/10"
+                                    title="Ignorer"
+                                >
+                                    <Icons.Trash2 size={16} />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const Toast = ({ message, onUndo, type = 'trash' }) => (
+            <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 animate-slide-up-toast w-[90%] md:w-auto max-w-md">
+                <div className="backdrop-blur-md pl-4 pr-6 py-3.5 rounded-2xl shadow-2xl flex items-center gap-4 
+                bg-slate-900/95 text-white border border-slate-800/50 
+                dark:bg-slate-800/95 dark:border-slate-700/80">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${type === 'trash' ? 'bg-red-500/20 text-red-400' : 'bg-emerald-500/20 text-emerald-400'}`}>
+                        {type === 'trash' ? <Icons.Trash2 size={16} /> : <Icons.CheckCircle size={16} />}
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                        <span className="text-sm font-medium truncate">{message}</span>
+                    </div>
+                    {onUndo && (
+                        <button 
+                            onClick={onUndo} 
+                            className="ml-auto text-xs font-bold text-blue-400 hover:text-blue-300 uppercase tracking-widest transition-colors border-l border-slate-700 pl-4 py-1"
+                        >
+                            Annuler
+                        </button>
+                    )}
+                </div>
+            </div>
+        );
+
+        function App() {
+            const [isDark, setIsDark] = useState(false);
+            const [activeTab, setActiveTab] = useState('INBOX');
+            const [jobs, setJobs] = useState(INITIAL_JOBS);
+            const [visitedIds, setVisitedIds] = useState(new Set());
+            const [searchQuery, setSearchQuery] = useState("");
+            const [toast, setToast] = useState(null);
+            const [lastAction, setLastAction] = useState(null);
+            
+            // --- FILTERS STATE ---
+            const [filterWorkMode, setFilterWorkMode] = useState("all");
+            const [filterEasyApply, setFilterEasyApply] = useState(false);
+            const [filterCountry, setFilterCountry] = useState("all");
+
+            // --- THEME EFFECT ---
+            useEffect(() => {
+                if (isDark) {
+                    document.documentElement.classList.add('dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                }
+            }, [isDark]);
+
+            const handleAction = (type, id) => {
+                if (type === 'VISIT') {
+                    setVisitedIds(prev => new Set(prev).add(id));
+                } else if (type === 'TRASH' || type === 'SAVED') {
+                    const job = jobs.find(j => j.id === id);
+                    if(!job) return;
+                    setLastAction({ id, fromStatus: job.status, job });
+                    setJobs(prev => prev.map(j => j.id === id ? { ...j, status: type } : j));
+                    setToast({ 
+                        msg: type === 'TRASH' ? 'Offre ignorée' : 'Offre sauvegardée',
+                        type: type === 'TRASH' ? 'trash' : 'success'
+                    });
+                    setTimeout(() => setToast(null), 4000);
+                }
+            };
+
+            const undoLastAction = () => {
+                if (!lastAction) return;
+                setJobs(prev => prev.map(j => j.id === lastAction.id ? { ...j, status: lastAction.fromStatus } : j));
+                setToast(null);
+                setLastAction(null);
+            };
+
+            const filteredJobs = useMemo(() => {
+                let displayed = jobs.filter(j => {
+                    if (activeTab === 'INBOX') return j.status === 'INBOX' && j.category !== 'FILTERED';
+                    if (activeTab === 'PROCESSED') return ['SAVED', 'TRASH'].includes(j.status);
+                    if (activeTab === 'FILTERED') return j.category === 'FILTERED';
+                    return false;
+                });
+                
+                if (activeTab === 'INBOX') {
+                    if (filterWorkMode !== 'all') {
+                        displayed = displayed.filter(j => j.workMode === filterWorkMode);
+                    }
+                    if (filterEasyApply) {
+                        displayed = displayed.filter(j => j.isEasyApply);
+                    }
+                    if (filterCountry !== 'all') {
+                         displayed = displayed.filter(j => j.country === filterCountry);
+                    }
+                }
+
+                if (searchQuery) {
+                    displayed = displayed.filter(j => j.title.toLowerCase().includes(searchQuery.toLowerCase()) || j.company.toLowerCase().includes(searchQuery.toLowerCase()));
+                }
+                return displayed;
+            }, [jobs, activeTab, searchQuery, filterWorkMode, filterEasyApply, filterCountry]);
+
+            const groupedJobs = useMemo(() => {
+                if (activeTab !== 'INBOX') return { 'Tout': filteredJobs };
+                
+                return filteredJobs.reduce((acc, job) => {
+                    const dateKey = formatDateKey(job.createdAt);
+                    if (!acc[dateKey]) acc[dateKey] = [];
+                    acc[dateKey].push(job);
+                    return acc;
+                }, {});
+            }, [filteredJobs, activeTab]);
+
+            return (
+                <div className="flex flex-col md:flex-row w-full h-full transition-colors duration-300">
+                    
+                    {/* SIDEBAR (Desktop Only) */}
+                    <aside className="hidden md:flex flex-col w-[280px] h-full p-5 shrink-0 z-30 shadow-[4px_0_24px_rgba(0,0,0,0.02)]
+                    bg-white border-r border-slate-200 
+                    dark:bg-slate-950 dark:border-slate-800 dark:shadow-[4px_0_24px_rgba(0,0,0,0.1)]">
+                        <div className="flex items-center gap-3 px-2 mb-10 mt-2">
+                            <div className="w-10 h-10 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-xl shadow-lg shadow-blue-500/20 flex items-center justify-center text-white font-bold text-xl">i</div>
+                            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">intrai.</h1>
+                        </div>
+
+                        <nav className="flex-1 space-y-2">
+                            <NavButton tab="INBOX" label="Flux entrant" icon={Icons.Inbox} activeTab={activeTab} onClick={setActiveTab} />
+                            <NavButton tab="PROCESSED" label="Traitées" icon={Icons.CheckCircle} activeTab={activeTab} onClick={setActiveTab} />
+                            <NavButton tab="FILTERED" label="Filtrés Auto" icon={Icons.ShieldAlert} activeTab={activeTab} onClick={setActiveTab} />
+                        </nav>
+
+                        <div className="mt-auto pt-6 border-t border-slate-100 dark:border-slate-800">
+                             <NavButton tab="SETTINGS" label="Réglages" icon={Icons.Settings} activeTab={activeTab} onClick={setActiveTab} />
+                             <div className="mt-6 px-4 py-4 rounded-2xl border 
+                             bg-slate-50/50 border-slate-100 
+                             dark:bg-slate-900/50 dark:border-slate-800">
+                                 <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Système</div>
+                                 <div className="flex items-center gap-2 text-sm font-semibold p-2 rounded-lg border 
+                                 text-emerald-600 bg-emerald-50/50 border-emerald-100/50
+                                 dark:text-emerald-400 dark:bg-emerald-500/10 dark:border-emerald-500/10">
+                                    <span className="relative flex h-2 w-2">
+                                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                    </span>
+                                    Parser Actif
+                                 </div>
+                             </div>
+                        </div>
+                    </aside>
+
+                    {/* MAIN CONTENT */}
+                    <main className="flex-1 flex flex-col h-full overflow-hidden relative">
+                        
+                        {/* --- MOBILE HEADER PREMIUM --- */}
+                        <div className="md:hidden glass z-40 sticky top-0 flex flex-col">
+                            {/* Row 1: Logo & Search Toggle */}
+                            <div className="h-16 px-4 flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg shadow-sm flex items-center justify-center text-white font-bold">i</div>
+                                    <span className="text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">intrai.</span>
+                                </div>
+                                <div className="flex gap-2">
+                                    <ThemeToggle isDark={isDark} toggle={() => setIsDark(!isDark)} />
+                                    <button className="w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center text-slate-600 dark:text-slate-400 active:scale-95 transition-transform">
+                                        <Icons.Search size={20} />
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            {/* Row 2: Elegant Segmented Control */}
+                            <div className="px-4 pb-3">
+                                <div className="flex p-1 rounded-full relative overflow-x-auto scrollbar-hide
+                                bg-slate-100/80 dark:bg-slate-800/80">
+                                    <MobileNavTab tab="INBOX" label="Flux entrant" activeTab={activeTab} onClick={setActiveTab} />
+                                    <MobileNavTab tab="PROCESSED" label="Historique" activeTab={activeTab} onClick={setActiveTab} />
+                                    <MobileNavTab tab="FILTERED" label="Spam" activeTab={activeTab} onClick={setActiveTab} />
+                                    <MobileNavTab tab="SETTINGS" label="Réglages" activeTab={activeTab} onClick={setActiveTab} />
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {/* --- DESKTOP HEADER --- */}
+                        <header className="hidden md:flex h-20 px-8 border-b items-center justify-between shrink-0 z-20 sticky top-0
+                        border-slate-200 bg-white/80 
+                        dark:border-slate-800 dark:bg-slate-950/80 backdrop-blur-xl">
+                            <div className="text-sm font-medium text-slate-400 dark:text-slate-500">
+                                {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
+                            </div>
+
+                            <div className="flex items-center gap-4">
+                                <ThemeToggle isDark={isDark} toggle={() => setIsDark(!isDark)} />
+                                
+                                <div className="relative group w-96">
+                                    <Icons.Search className="absolute left-4 top-3 transition-colors text-slate-400 group-focus-within:text-blue-500" size={18} />
+                                    <input 
+                                        type="text" 
+                                        placeholder="Rechercher par poste, entreprise..." 
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        className="w-full rounded-2xl py-2.5 pl-11 pr-4 text-sm transition-all shadow-sm
+                                        bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white placeholder-slate-400
+                                        dark:bg-slate-900 dark:border-slate-800 dark:focus:border-blue-500/50 dark:focus:bg-slate-950 dark:text-slate-200 dark:placeholder-slate-500"
+                                    />
+                                </div>
+                                <button className="w-10 h-10 border rounded-xl flex items-center justify-center transition-colors
+                                border-slate-200 text-slate-500 hover:bg-slate-50
+                                dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-900">
+                                    <div className="relative">
+                                        <Icons.Inbox size={20} />
+                                        <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-slate-950"></div>
+                                    </div>
+                                </button>
+                            </div>
+                        </header>
+
+                        {/* SCROLL AREA */}
+                        <div className="flex-1 overflow-y-auto overflow-x-hidden scroll-smooth">
+                            <div className="max-w-5xl mx-auto p-4 md:p-8 pb-32">
+                                
+                                {/* Page Header (Desktop) */}
+                                <div className="hidden md:flex items-end justify-between mb-8">
+                                    <div>
+                                        <h2 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+                                            {activeTab === 'INBOX' ? 'Opportunités' : activeTab === 'PROCESSED' ? 'Historique' : activeTab === 'FILTERED' ? 'Bloquées' : 'Configuration'}
+                                        </h2>
+                                        <p className="text-sm mt-2 font-medium text-slate-500 dark:text-slate-400">
+                                            {activeTab === 'INBOX' ? 'Gérez vos nouvelles offres d\'emploi.' : 'Retrouvez vos décisions passées.'}
+                                        </p>
+                                    </div>
+                                    {activeTab === 'INBOX' && (
+                                        <button className="text-sm font-bold px-4 py-2 rounded-xl transition-colors shadow-sm
+                                        text-blue-600 bg-blue-50 hover:bg-blue-100
+                                        dark:text-blue-400 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 dark:border dark:border-blue-500/10">
+                                            Tout marquer comme vu
+                                        </button>
+                                    )}
+                                </div>
+
+                                {/* --- FILTERS BAR (Re-added & Improved) --- */}
+                                {activeTab === 'INBOX' && (
+                                    <div className="mb-6 overflow-x-auto scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
+                                        <div className="flex items-center gap-3 min-w-max pb-2 md:pb-0">
+                                            <div className="flex p-1 rounded-xl shadow-sm border
+                                            bg-white border-slate-200
+                                            dark:bg-slate-900 dark:border-slate-800">
+                                                {['all', 'remote', 'hybrid', 'on-site'].map(m => (
+                                                    <button 
+                                                        key={m} 
+                                                        onClick={() => setFilterWorkMode(m)}
+                                                        className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all 
+                                                        ${filterWorkMode === m 
+                                                            ? 'bg-slate-800 text-white shadow-md dark:bg-slate-700 dark:text-slate-100' 
+                                                            : 'text-slate-500 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800'}`}
+                                                    >
+                                                        {m === 'all' ? 'Tous' : m === 'remote' ? 'Remote' : m === 'hybrid' ? 'Hybride' : 'Site'}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                            <div className="w-[1px] h-8 mx-1 bg-slate-200 dark:bg-slate-800"></div>
+                                            <FilterPill 
+                                                label="Candidature simplifiée" 
+                                                icon={Icons.Zap} 
+                                                active={filterEasyApply} 
+                                                onClick={() => setFilterEasyApply(!filterEasyApply)} 
+                                            />
+                                            <FilterPill 
+                                                label="France Uniquement" 
+                                                icon={Icons.Globe} 
+                                                active={filterCountry === 'France'} 
+                                                onClick={() => setFilterCountry(filterCountry === 'France' ? 'all' : 'France')} 
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Content Grid */}
+                                {activeTab === 'SETTINGS' ? (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-enter">
+                                        <div className="p-8 rounded-3xl shadow-soft border
+                                        bg-white border-slate-100
+                                        dark:bg-slate-900 dark:border-slate-800">
+                                            <div className="flex items-center gap-4 mb-6">
+                                                <div className="p-3 rounded-2xl bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"><Icons.Zap size={24}/></div>
+                                                <div>
+                                                    <h3 className="font-bold text-lg text-slate-900 dark:text-slate-100">Mots-clés Automatiques</h3>
+                                                    <p className="text-sm text-slate-500 dark:text-slate-400">Ces offres seront automatiquement traitées.</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex flex-wrap gap-2">
+                                                {['Wordpress', 'PHP', 'Stage', 'Alternance'].map(t => (
+                                                    <span key={t} className="px-3 py-1.5 rounded-xl text-sm font-medium flex items-center gap-2 group cursor-pointer transition-colors
+                                                    bg-slate-50 border border-slate-200 hover:bg-red-50 hover:border-red-200 hover:text-red-600
+                                                    dark:bg-slate-950 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-red-900/20 dark:hover:border-red-500/30 dark:hover:text-red-400">
+                                                        {t} <Icons.X size={14} className="opacity-50 group-hover:opacity-100" />
+                                                    </span>
+                                                ))}
+                                                <button className="px-3 py-1.5 border border-dashed rounded-xl text-sm font-medium transition-colors flex items-center gap-1
+                                                border-slate-300 text-slate-400 hover:text-blue-600 hover:border-blue-400
+                                                dark:border-slate-700 dark:text-slate-500 dark:hover:text-blue-400 dark:hover:border-blue-500/50">
+                                                    + Ajouter
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-8">
+                                        {Object.keys(groupedJobs).length === 0 ? (
+                                            <div className="flex flex-col items-center justify-center py-24 text-center animate-enter">
+                                                <div className="w-24 h-24 rounded-full flex items-center justify-center shadow-soft mb-6
+                                                bg-white text-slate-300
+                                                dark:bg-slate-900 dark:text-slate-600">
+                                                    <Icons.Inbox size={48} strokeWidth={1.5} />
+                                                </div>
+                                                <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100">Aucun résultat</h3>
+                                                <p className="text-slate-500 dark:text-slate-500 mt-2 max-w-xs mx-auto">Essayez de modifier vos filtres ou revenez plus tard.</p>
+                                                <button onClick={() => { setFilterWorkMode('all'); setFilterEasyApply(false); setSearchQuery(''); }} className="mt-6 text-sm font-bold text-blue-600 hover:underline dark:text-blue-400">
+                                                    Réinitialiser les filtres
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            Object.keys(groupedJobs).map((dateKey, dateIndex) => (
+                                                <div key={dateKey} className="animate-enter" style={{ animationDelay: `${dateIndex * 100}ms` }}>
+                                                    {activeTab === 'INBOX' && (
+                                                        <div className="flex items-center gap-4 mb-5 px-1">
+                                                            <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">{dateKey}</h3>
+                                                            <div className="h-[1px] flex-1 bg-slate-200 dark:bg-slate-800"></div>
+                                                        </div>
+                                                    )}
+                                                    <div className="space-y-3 md:space-y-4">
+                                                        {groupedJobs[dateKey].map((job, index) => (
+                                                            <JobCard 
+                                                                key={job.id} 
+                                                                job={job} 
+                                                                visitedIds={visitedIds} 
+                                                                onAction={handleAction}
+                                                                index={index}
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* TOAST NOTIFICATION */}
+                        {toast && <Toast message={toast.msg} onUndo={undoLastAction} type={toast.type} />}
+
+                    </main>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

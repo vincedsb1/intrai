@@ -1,10 +1,23 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   
-  --color-slate-850: #1e293b;
+  --color-slate-50: #fafaf9;
+  --color-slate-100: #f5f5f4;
+  --color-slate-200: #e7e5e4;
+  --color-slate-300: #d6d3d1;
+  --color-slate-400: #a8a29e;
+  --color-slate-500: #78716c;
+  --color-slate-600: #57534e;
+  --color-slate-700: #44403c;
+  --color-slate-800: #292524;
+  --color-slate-850: #1e293b; /* Keeping this one for specific usage if needed, or mapping to 900 */
+  --color-slate-900: #1c1917;
+  --color-slate-950: #0c0a09;
   
   --shadow-soft: 0 2px 10px rgba(0, 0, 0, 0.03);
   --shadow-hover: 0 10px 30px -5px rgba(0, 0, 0, 0.08);
@@ -26,10 +39,15 @@
 
 /* Utilities */
 .glass {
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+  border-bottom: 1px solid rgba(231, 229, 228, 0.8);
+}
+
+.dark .glass {
+  background: rgba(28, 25, 23, 0.85); /* Stone 900 with opacity */
+  border-bottom: 1px solid rgba(68, 64, 60, 0.5);
 }
 
 .scrollbar-hide::-webkit-scrollbar {
@@ -50,11 +68,17 @@
     background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-    background: #CBD5E1;
+    background: #d6d3d1;
     border-radius: 3px;
 }
+.dark ::-webkit-scrollbar-thumb {
+    background: #44403c;
+}
 ::-webkit-scrollbar-thumb:hover {
-    background: #94A3B8;
+    background: #a8a29e;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+    background: #57534e;
 }
 
 /* Stagger animations */
