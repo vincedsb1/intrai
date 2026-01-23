@@ -18,9 +18,12 @@ interface FilterBarProps {
 const FilterPill = ({ label, icon: Icon, active, onClick }: { label: string, icon?: React.ElementType, active: boolean, onClick: () => void }) => (
     <button
         onClick={onClick}
-        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all whitespace-nowrap ${active ? 'bg-slate-800 text-white border-slate-800 shadow-md transform scale-[1.02]' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all whitespace-nowrap 
+        ${active 
+            ? 'bg-slate-900 text-white border-slate-900 shadow-md transform scale-[1.02] dark:bg-slate-200 dark:text-slate-900 dark:border-slate-200' 
+            : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-700'}`}
     >
-        {Icon && <Icon size={12} strokeWidth={1.5} className={active ? "text-white" : "text-slate-400"} />}
+        {Icon && <Icon size={12} strokeWidth={1.5} className={active ? "text-current" : "text-slate-400 dark:text-slate-500"} />}
         {label}
     </button>
 );
@@ -39,15 +42,17 @@ export default function FilterBar({
   return (
     <div className="mb-6 overflow-x-auto scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
       <div className="flex items-center gap-3 min-w-max pb-2 md:pb-0">
-        <div className="flex bg-white p-1 rounded-xl border border-slate-200 shadow-sm">
+        <div className="flex p-1 rounded-xl shadow-sm border
+        bg-white border-slate-200
+        dark:bg-slate-900 dark:border-slate-800">
           {['all', 'remote', 'hybrid', 'on-site'].map((m) => (
             <button
               key={m}
               onClick={() => setFilterWorkMode(m)}
               className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
                 filterWorkMode === m
-                  ? 'bg-slate-800 text-white shadow-md'
-                  : 'text-slate-500 hover:bg-slate-50'
+                  ? 'bg-slate-800 text-white shadow-md dark:bg-slate-700 dark:text-slate-100'
+                  : 'text-slate-500 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800'
               }`}
             >
               {m === 'all'
@@ -61,7 +66,7 @@ export default function FilterBar({
           ))}
         </div>
         
-        <div className="w-[1px] h-8 bg-slate-200 mx-1"></div>
+        <div className="w-[1px] h-8 mx-1 bg-slate-200 dark:bg-slate-800"></div>
         
         <FilterPill
           label="Candidature simplifiée"
@@ -73,12 +78,14 @@ export default function FilterBar({
         {/* Country Dropdown */}
         <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Globe size={12} strokeWidth={1.5} className="text-slate-400" />
+                <Globe size={12} strokeWidth={1.5} className="text-slate-400 dark:text-slate-500" />
             </div>
             <select
                 value={filterCountry}
                 onChange={(e) => setFilterCountry(e.target.value)}
-                className="pl-8 pr-8 py-1.5 rounded-lg text-xs font-medium border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer appearance-none h-[30px]"
+                className="pl-8 pr-8 py-1.5 rounded-lg text-xs font-medium border focus:outline-none focus:ring-2 cursor-pointer appearance-none h-[30px]
+                border-slate-200 bg-white text-slate-600 hover:bg-slate-50 focus:ring-blue-500/20
+                dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700 dark:focus:ring-blue-500/50"
             >
                 <option value="all">Tous les pays</option>
                 {availableCountries.map((country) => (
@@ -92,10 +99,12 @@ export default function FilterBar({
         {/* Reset Filters Button */}
         {isAnyFilterActive && onClearFilters && (
             <>
-                <div className="w-[1px] h-8 bg-slate-200 mx-1"></div>
+                <div className="w-[1px] h-8 mx-1 bg-slate-200 dark:bg-slate-800"></div>
                 <button
                     onClick={onClearFilters}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-red-600 hover:bg-red-50 transition-colors border border-transparent hover:border-red-100"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border border-transparent 
+                    text-red-600 hover:bg-red-50 hover:border-red-100
+                    dark:text-red-400 dark:hover:bg-red-900/20 dark:hover:border-red-900/30"
                     title="Réinitialiser tous les filtres"
                 >
                     <FilterX size={14} />

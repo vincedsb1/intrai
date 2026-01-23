@@ -66,28 +66,32 @@ export default function SettingsView({ initialData }: SettingsViewProps) {
       {/* Page Header (Desktop) - Hidden on mobile */}
       <div className="hidden md:flex items-end justify-between mb-8">
         <div>
-          <h2 className="text-3xl font-bold text-slate-900 tracking-tight">Configuration</h2>
-          <p className="text-slate-500 text-sm mt-2 font-medium">
+          <h2 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">Configuration</h2>
+          <p className="text-sm mt-2 font-medium text-slate-500 dark:text-slate-400">
              Gérez vos règles de tri automatique.
           </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-enter">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-enter pb-32">
         
         {/* Whitelist Section */}
-        <div className="bg-white p-8 rounded-3xl shadow-soft border border-slate-100 h-fit">
+        <div className="p-8 rounded-3xl shadow-soft border h-fit
+        bg-white border-slate-100
+        dark:bg-slate-900 dark:border-slate-800">
             <div className="flex items-center gap-4 mb-6">
-                <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl"><Zap size={24}/></div>
+                <div className="p-3 rounded-2xl bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"><Zap size={24}/></div>
                 <div>
-                    <h3 className="font-bold text-lg text-slate-900">Mots-clés Automatiques</h3>
-                    <p className="text-sm text-slate-500">Ces offres seront automatiquement traitées.</p>
+                    <h3 className="font-bold text-lg text-slate-900 dark:text-slate-100">Mots-clés Automatiques</h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Ces offres seront automatiquement traitées.</p>
                 </div>
             </div>
             
             <div className="flex flex-wrap gap-2 mb-6">
                 {whitelist.map(t => (
-                    <span key={t} className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium flex items-center gap-2 group hover:bg-red-50 hover:border-red-200 hover:text-red-600 cursor-pointer transition-colors" onClick={() => removeWhitelist(t)}>
+                    <span key={t} className="px-3 py-1.5 rounded-xl text-sm font-medium flex items-center gap-2 group cursor-pointer transition-colors
+                    bg-slate-50 border border-slate-200 hover:bg-red-50 hover:border-red-200 hover:text-red-600
+                    dark:bg-slate-950 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-red-900/20 dark:hover:border-red-500/30 dark:hover:text-red-400" onClick={() => removeWhitelist(t)}>
                         {t} <X size={14} className="opacity-50 group-hover:opacity-100" />
                     </span>
                 ))}
@@ -99,27 +103,35 @@ export default function SettingsView({ initialData }: SettingsViewProps) {
                     onChange={(e) => setNewWhitelistTerm(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && addWhitelist()}
                     placeholder="Ajouter un mot-clé..." 
-                    className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                    className="flex-1 rounded-xl px-4 py-2.5 text-sm outline-none transition-all
+                    bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500
+                    dark:bg-slate-950 dark:border-slate-800 dark:focus:ring-blue-500/50 dark:focus:border-blue-500/50 dark:text-slate-200 dark:placeholder-slate-500"
                 />
-                <button onClick={addWhitelist} className="w-10 h-10 flex items-center justify-center bg-blue-600 text-white rounded-xl hover:bg-blue-700 active:scale-95 transition-all">
+                <button onClick={addWhitelist} className="w-10 h-10 flex items-center justify-center rounded-xl transition-all active:scale-95
+                bg-blue-600 text-white hover:bg-blue-700
+                dark:bg-blue-600 dark:hover:bg-blue-500">
                     <Plus size={20} />
                 </button>
             </div>
         </div>
 
         {/* Blacklist Section */}
-        <div className="bg-white p-8 rounded-3xl shadow-soft border border-slate-100 h-fit">
+        <div className="p-8 rounded-3xl shadow-soft border h-fit
+        bg-white border-slate-100
+        dark:bg-slate-900 dark:border-slate-800">
             <div className="flex items-center gap-4 mb-6">
-                <div className="p-3 bg-red-50 text-red-600 rounded-2xl"><ShieldAlert size={24}/></div>
+                <div className="p-3 rounded-2xl bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400"><ShieldAlert size={24}/></div>
                 <div>
-                    <h3 className="font-bold text-lg text-slate-900">Mots-clés Bloqués</h3>
-                    <p className="text-sm text-slate-500">Ces offres seront ignorées.</p>
+                    <h3 className="font-bold text-lg text-slate-900 dark:text-slate-100">Mots-clés Bloqués</h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Ces offres seront ignorées.</p>
                 </div>
             </div>
             
             <div className="flex flex-wrap gap-2 mb-6">
                 {blacklist.map(t => (
-                    <span key={t} className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium flex items-center gap-2 group hover:bg-red-50 hover:border-red-200 hover:text-red-600 cursor-pointer transition-colors" onClick={() => removeBlacklist(t)}>
+                    <span key={t} className="px-3 py-1.5 rounded-xl text-sm font-medium flex items-center gap-2 group cursor-pointer transition-colors
+                    bg-slate-50 border border-slate-200 hover:bg-red-50 hover:border-red-200 hover:text-red-600
+                    dark:bg-slate-950 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-red-900/20 dark:hover:border-red-500/30 dark:hover:text-red-400" onClick={() => removeBlacklist(t)}>
                         {t} <X size={14} className="opacity-50 group-hover:opacity-100" />
                     </span>
                 ))}
@@ -131,9 +143,13 @@ export default function SettingsView({ initialData }: SettingsViewProps) {
                     onChange={(e) => setNewBlacklistTerm(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && addBlacklist()}
                     placeholder="Ajouter un mot-clé..." 
-                    className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all"
+                    className="flex-1 rounded-xl px-4 py-2.5 text-sm outline-none transition-all
+                    bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-red-500/20 focus:border-red-500
+                    dark:bg-slate-950 dark:border-slate-800 dark:focus:ring-red-500/50 dark:focus:border-red-500/50 dark:text-slate-200 dark:placeholder-slate-500"
                 />
-                <button onClick={addBlacklist} className="w-10 h-10 flex items-center justify-center bg-red-600 text-white rounded-xl hover:bg-red-700 active:scale-95 transition-all">
+                <button onClick={addBlacklist} className="w-10 h-10 flex items-center justify-center rounded-xl transition-all active:scale-95
+                bg-red-600 text-white hover:bg-red-700
+                dark:bg-red-600 dark:hover:bg-red-500">
                     <Plus size={20} />
                 </button>
             </div>
