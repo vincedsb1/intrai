@@ -1,11 +1,11 @@
-import { MongoClient } from "mongodb";
+import { MongoClient, MongoClientOptions } from "mongodb";
 
 if (!process.env.MONGODB_URI) {
   throw new Error('Invalid/Missing environment variable: "MONGODB_URI"');
 }
 
 const uri = process.env.MONGODB_URI;
-const options = {
+const options: MongoClientOptions = {
   // Optimisations pour environnement Serverless (Vercel) + VPS
   maxPoolSize: 1, 
   minPoolSize: 0,
