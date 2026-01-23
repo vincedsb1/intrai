@@ -224,7 +224,7 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
   const groupKeys = Object.keys(groupedJobs);
 
   return (
-    <>
+    <div className="pb-64">
         {/* Page Header (Desktop) - Hidden on mobile */}
         <div className="hidden md:flex items-end justify-between mb-8">
             <div>
@@ -303,6 +303,7 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
                 message={toast.msg} 
                 type={toast.type} 
                 onUndo={toast.type === 'trash' ? handleUndoTrash : undefined} 
+                onClose={() => setToast(null)}
             />
         )}
         
@@ -313,6 +314,7 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
                 type="success"
                 actionLabel="Nettoyer"
                 onUndo={handleBulkClean}
+                onClose={() => setShowBulkCleanToast(false)}
              />
         )}
 
@@ -323,6 +325,6 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
             initialTerm={blacklistTerm}
             onConfirm={handleBlacklistConfirm}
         />
-    </>
+    </div>
   );
 }

@@ -1,11 +1,20 @@
-import { MongoClient } from "mongodb";
+import { MongoClient, MongoClientOptions } from "mongodb";
 
 if (!process.env.MONGODB_URI) {
   throw new Error('Invalid/Missing environment variable: "MONGODB_URI"');
 }
 
 const uri = process.env.MONGODB_URI;
-const options = {};
+const options: MongoClientOptions = {
+  // Optimisations pour environnement Serverless (Vercel) + VPS
+  maxPoolSize: 1, 
+  minPoolSize: 0,
+  serverSelectionTimeoutMS: 10000, // On laisse 10s pour trouver le serveur (tolérance latence)
+  socketTimeoutMS: 45000, // Timeout opérations longues
+  connectTimeoutMS: 20000, // Timeout initial de connexion TCP plus large
+  retryWrites: true,
+  w: "majority",
+};
 
 let client: MongoClient;
 let clientPromise: Promise<MongoClient>;
