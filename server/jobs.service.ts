@@ -114,6 +114,22 @@ export async function ingestJob(jobData: Partial<Job>) {
   const settings = await getSettings();
   const db = await getDb();
 
+  // 0. DUPLICATE CHECK (URL)
+  if (jobData.url) {
+    const existingJob = await db.collection(JOBS_COLLECTION).findOne({ url: jobData.url });
+    if (existingJob) {
+      console.log(`[INGEST] 🟡 Duplicate URL found: ${jobData.url}. Updating timestamp only.`);
+      // On met à jour la date de dernière vue, mais ON NE CHANGE PAS LE STATUS (INBOX/TRASH/SAVED)
+      await db.collection(JOBS_COLLECTION).updateOne(
+        { _id: existingJob._id },
+        { $set: { updatedAt: new Date() } }
+      );
+      // On retourne l'existant formaté
+      const { _id, ...rest } = existingJob;
+      return { ...rest, id: _id.toString() } as unknown as Job;
+    }
+  }
+
   let category: JobCategory = "EXPLORE";
   let matchedKeyword: string | null = null;
 

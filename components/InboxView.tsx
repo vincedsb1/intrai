@@ -21,6 +21,13 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
 
   const [jobs, setJobs] = useState<Job[]>(initialJobs);
   
+  // Helper pour mettre à jour la sidebar instantanément
+  const updateSidebarCount = (change: number) => {
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("inbox-count-update", { detail: { change } }));
+    }
+  };
+
   const searchQuery = searchParams.get("q") || "";
   const filterWorkMode = searchParams.get("mode") || "all";
   const filterEasyApply = searchParams.get("easy") === "true";
@@ -93,7 +100,12 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
 
       if (!res.ok) throw new Error("Failed to blacklist");
 
+      const jobsToRemove = jobs.filter((j) => j.company === term);
+      const countRemoved = jobsToRemove.length;
+
       setJobs(jobs.filter((j) => j.company !== term));
+      updateSidebarCount(-countRemoved); // Update Sidebar
+
       setIsBlacklistModalOpen(false);
       setToast({ msg: `Auteur "${term}" banni`, type: 'trash' });
       
@@ -148,6 +160,7 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
     if (!jobToMove) return;
 
     setJobs((prev) => prev.filter((j) => j.id !== id));
+    updateSidebarCount(-1); // Update Sidebar
 
     if (newStatus === "TRASH") {
       setLastTrashedJob(jobToMove);
@@ -166,6 +179,7 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
     } catch (error) {
       console.error(error);
       setJobs((prev) => [jobToMove, ...prev]);
+      updateSidebarCount(1); // Rollback Sidebar
       alert("Erreur serveur, action annulée.");
     }
     
@@ -181,18 +195,17 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
     }
     console.log("Undoing trash for job:", lastTrashedJob.id);
     
-    // On force le statut INBOX pour l'affichage immédiat, au cas où l'objet stocké aurait un vieux statut
+    // On force le statut INBOX pour l'affichage immédiat
     const jobToRestore = { ...lastTrashedJob, status: "INBOX" } as Job;
     
     setLastTrashedJob(null);
     setToast(null);
     
-    // On le remet en tête de liste
     setJobs((prev) => {
-        // Évite les doublons si jamais il était déjà là
         if (prev.find(j => j.id === jobToRestore.id)) return prev;
         return [jobToRestore, ...prev];
     });
+    updateSidebarCount(1); // Update Sidebar (Restore = +1)
 
     try {
       await fetch(`/api/jobs/${jobToRestore.id}`, {
@@ -203,15 +216,18 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
       console.log("Undo API success");
     } catch (error) {
       console.error("Undo API failed", error);
-      // En cas d'échec API, on le retire à nouveau
       setJobs((prev) => prev.filter((j) => j.id !== jobToRestore.id));
+      updateSidebarCount(-1); // Rollback Sidebar
     }
   };
   
   const handleBulkClean = async () => {
     const idsToTrash = inboxJobs.filter((j) => visitedIds.has(j.id)).map((j) => j.id);
+    const countRemoved = idsToTrash.length;
+    
     setJobs(jobs.filter((j) => !idsToTrash.includes(j.id)));
     setVisitedIds(new Set());
+    updateSidebarCount(-countRemoved); // Update Sidebar
     
     idsToTrash.map((id) =>
           fetch(`/api/jobs/${id}`, {

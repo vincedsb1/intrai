@@ -30,7 +30,19 @@ export default function Sidebar() {
     fetchCount();
     // Refresh count every 30 seconds
     const interval = setInterval(fetchCount, 30000);
-    return () => clearInterval(interval);
+
+    // Listen for local updates from InboxView (instant feedback)
+    const handleLocalUpdate = (event: CustomEvent) => {
+      const change = event.detail?.change || 0;
+      setInboxCount((prev) => (prev !== null ? Math.max(0, prev + change) : prev));
+    };
+
+    window.addEventListener("inbox-count-update", handleLocalUpdate as EventListener);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("inbox-count-update", handleLocalUpdate as EventListener);
+    };
   }, []);
 
   const tabs = [
