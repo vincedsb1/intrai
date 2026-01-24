@@ -8,13 +8,33 @@ import { Inbox, CheckCircle, ShieldAlert, Settings } from "lucide-react";
 export default function Sidebar() {
   const pathname = usePathname();
   const [activeTab, setActiveTab] = useState(pathname);
+  const [inboxCount, setInboxCount] = useState<number | null>(null);
 
   useEffect(() => {
     setActiveTab(pathname);
   }, [pathname]);
 
+  useEffect(() => {
+    const fetchCount = async () => {
+      try {
+        const res = await fetch("/api/jobs/count");
+        if (res.ok) {
+          const data = await res.json();
+          setInboxCount(data.count);
+        }
+      } catch (err) {
+        console.error("Failed to fetch inbox count", err);
+      }
+    };
+
+    fetchCount();
+    // Refresh count every 30 seconds
+    const interval = setInterval(fetchCount, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
   const tabs = [
-    { id: "inbox", href: "/inbox", icon: Inbox, label: "Flux entrant", count: 3 },
+    { id: "inbox", href: "/inbox", icon: Inbox, label: "Flux entrant", count: inboxCount },
     { id: "processed", href: "/processed", icon: CheckCircle, label: "Traitées" },
     { id: "filtered", href: "/filtered", icon: ShieldAlert, label: "Filtrés Auto" },
   ];
@@ -54,12 +74,12 @@ export default function Sidebar() {
                     <Icon size={20} className={`transition-colors relative z-10 ${isActive ? 'stroke-[2.5px]' : 'stroke-2'}`} />
                     <span className="relative z-10">{tab.label}</span>
                     {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-500 rounded-r-full shadow-glow"></div>}
-                    {tab.id === 'inbox' && (
+                    {tab.id === 'inbox' && tab.count !== null && (
                         <span className={`ml-auto text-xs font-bold px-2 py-0.5 rounded-full relative z-10 
                         ${isActive 
                             ? 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300' 
                             : 'bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-500'}`}>
-                           3
+                           {tab.count}
                         </span>
                     )}
                 </Link>

@@ -9,9 +9,11 @@ const options: MongoClientOptions = {
   // Optimisations pour environnement Serverless (Vercel) + VPS
   maxPoolSize: 1, 
   minPoolSize: 0,
-  serverSelectionTimeoutMS: 10000, // On laisse 10s pour trouver le serveur (tolérance latence)
-  socketTimeoutMS: 45000, // Timeout opérations longues
-  connectTimeoutMS: 20000, // Timeout initial de connexion TCP plus large
+  serverSelectionTimeoutMS: 30000, // Augmenté à 30s
+  socketTimeoutMS: 60000, 
+  connectTimeoutMS: 30000, 
+  directConnection: true, // FORCE la connexion directe (essentiel pour VPS unique)
+  family: 4, // Force IPv4 pour éviter les timeouts de résolution IPv6
   retryWrites: true,
   w: "majority",
 };
@@ -27,14 +29,41 @@ if (process.env.NODE_ENV === "development") {
   };
 
   if (!globalWithMongo._mongoClientPromise) {
+    console.log("[MONGO] 🟡 (Dev) Creating new MongoDB client & connecting...");
+    const timeStart = Date.now();
     client = new MongoClient(uri, options);
-    globalWithMongo._mongoClientPromise = client.connect();
+    globalWithMongo._mongoClientPromise = client.connect()
+      .then((c) => {
+        console.log(`[MONGO] 🟢 (Dev) Connected successfully in ${Date.now() - timeStart}ms`);
+        return c;
+      })
+      .catch((err) => {
+        console.error("[MONGO] 🔴 (Dev) Connection FAILED:", err);
+        throw err;
+      });
+  } else {
+    console.log("[MONGO] 🔵 (Dev) Reusing existing global client promise");
   }
   clientPromise = globalWithMongo._mongoClientPromise;
 } else {
-  // In production mode, it's best to not use a global variable.
+  // In production mode
+  console.log("[MONGO] 🟡 (Prod) Creating new MongoDB client & connecting...");
+  const timeStart = Date.now();
   client = new MongoClient(uri, options);
-  clientPromise = client.connect();
+  
+  // On attache des logs aux événements du client pour voir s'il perd la connexion
+  client.on("serverDescriptionChanged", (event) => console.log("[MONGO] ℹ️ Topology change:", event.newDescription.type));
+  client.on("serverHeartbeatFailed", (event) => console.error("[MONGO] ⚠️ Heartbeat failed:", event.failure));
+  
+  clientPromise = client.connect()
+    .then((c) => {
+      console.log(`[MONGO] 🟢 (Prod) Connected successfully in ${Date.now() - timeStart}ms`);
+      return c;
+    })
+    .catch((err) => {
+      console.error("[MONGO] 🔴 (Prod) Connection FAILED:", err);
+      throw err;
+    });
 }
 
 // Export a module-scoped MongoClient promise. By doing this in a

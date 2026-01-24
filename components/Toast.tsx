@@ -13,7 +13,7 @@ interface ToastProps {
 
 export default function Toast({ message, onUndo, onClose, actionLabel = "Annuler", type = 'trash' }: ToastProps) {
   return (
-    <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 animate-slide-up-toast w-[90%] md:w-auto max-w-md">
+    <div className="fixed bottom-12 left-0 right-0 mx-auto z-50 animate-slide-up-toast w-[90%] md:w-fit max-w-md px-4">
       <div className="backdrop-blur-md pl-4 pr-3 py-3.5 rounded-2xl shadow-2xl flex items-center gap-4 
       bg-slate-900/95 text-white border border-slate-800/50 
       dark:bg-slate-800/95 dark:border-slate-700/80">

@@ -32,8 +32,8 @@
   }
 
   @keyframes slideUpToast {
-    from { transform: translate(-50%, 100%); opacity: 0; }
-    to { transform: translate(-50%, -24px); opacity: 1; }
+    from { transform: translateY(100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
   }
 }
 
