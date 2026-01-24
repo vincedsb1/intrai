@@ -175,11 +175,24 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
   };
 
   const handleUndoTrash = async () => {
-    if (!lastTrashedJob) return;
-    const jobToRestore = lastTrashedJob;
+    if (!lastTrashedJob) {
+        console.warn("Undo failed: No lastTrashedJob found");
+        return;
+    }
+    console.log("Undoing trash for job:", lastTrashedJob.id);
+    
+    // On force le statut INBOX pour l'affichage immédiat, au cas où l'objet stocké aurait un vieux statut
+    const jobToRestore = { ...lastTrashedJob, status: "INBOX" } as Job;
+    
     setLastTrashedJob(null);
     setToast(null);
-    setJobs((prev) => [jobToRestore, ...prev]);
+    
+    // On le remet en tête de liste
+    setJobs((prev) => {
+        // Évite les doublons si jamais il était déjà là
+        if (prev.find(j => j.id === jobToRestore.id)) return prev;
+        return [jobToRestore, ...prev];
+    });
 
     try {
       await fetch(`/api/jobs/${jobToRestore.id}`, {
@@ -187,7 +200,10 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "INBOX" }),
       });
+      console.log("Undo API success");
     } catch (error) {
+      console.error("Undo API failed", error);
+      // En cas d'échec API, on le retire à nouveau
       setJobs((prev) => prev.filter((j) => j.id !== jobToRestore.id));
     }
   };

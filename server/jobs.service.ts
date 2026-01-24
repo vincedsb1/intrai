@@ -6,18 +6,25 @@ import { ObjectId } from "mongodb";
 const JOBS_COLLECTION = "jobs";
 
 export async function getJobs(filters: { status?: JobStatus; category?: JobCategory }) {
-  const db = await getDb();
-  const query: any = {};
-  if (filters.status) query.status = filters.status;
-  if (filters.category) query.category = filters.category;
+  const start = Date.now();
+  console.log(`[JOBS] 🟡 Fetching jobs with filters: ${JSON.stringify(filters)}`);
 
-  const items = await db
-    .collection(JOBS_COLLECTION)
-    .find(query)
-    .sort({ createdAt: -1 })
-    .toArray();
+  try {
+    const db = await getDb();
+    const query: any = {};
+    if (filters.status) query.status = filters.status;
+    if (filters.category) query.category = filters.category;
 
-  return items.map((item) => {
+    const items = await db
+        .collection(JOBS_COLLECTION)
+        .find(query)
+        .sort({ createdAt: -1 })
+        .toArray();
+    
+    const duration = Date.now() - start;
+    console.log(`[JOBS] 🟢 Fetched ${items.length} jobs in ${duration}ms`);
+
+    return items.map((item) => {
     const { _id, createdAt, visitedAt, updatedAt, aiAnalysis, ...rest } = item;
     return {
       ...rest,
@@ -31,6 +38,10 @@ export async function getJobs(filters: { status?: JobStatus; category?: JobCateg
       } : null
     };
   }) as unknown as Job[];
+  } catch (error) {
+    console.error("[JOBS] 🔴 Error fetching jobs:", error);
+    throw error;
+  }
 }
 
 export async function updateJobStatus(id: string, status: JobStatus) {
