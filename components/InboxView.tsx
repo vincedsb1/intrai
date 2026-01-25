@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useTransition } from "react";
+import React, { useState, useMemo, useTransition, useOptimistic } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { Inbox } from "lucide-react";
 import JobCard from "./JobCard";
@@ -28,10 +28,19 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
     }
   };
 
-  const searchQuery = searchParams.get("q") || "";
-  const filterWorkMode = searchParams.get("mode") || "all";
-  const filterEasyApply = searchParams.get("easy") === "true";
-  const filterCountry = searchParams.get("country") || "all";
+  // 1. Définition de l'état actuel des filtres (Source of Truth = URL)
+  const currentFilters = {
+    q: searchParams.get("q") || "",
+    mode: searchParams.get("mode") || "all",
+    easy: searchParams.get("easy") === "true",
+    country: searchParams.get("country") || "all",
+  };
+
+  // 2. État Optimiste pour UI instantanée
+  const [optimisticFilters, setOptimisticFilters] = useOptimistic(
+    currentFilters,
+    (state, newFilters: Partial<typeof currentFilters>) => ({ ...state, ...newFilters })
+  );
   
   const updateUrlParams = (key: string, value: string | null) => {
     const current = new URLSearchParams(Array.from(searchParams.entries()));
@@ -43,35 +52,42 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
     const search = current.toString();
     const query = search ? `?${search}` : "";
     
-    startTransition(() => {
-      router.replace(`${pathname}${query}`, { scroll: false });
-    });
+    router.replace(`${pathname}${query}`, { scroll: false });
   };
 
   const handleModeChange = (val: string) => {
-    updateUrlParams("mode", val);
+    startTransition(() => {
+        setOptimisticFilters({ mode: val });
+        updateUrlParams("mode", val);
+    });
   };
 
   const handleEasyChange = (val: boolean) => {
-    updateUrlParams("easy", val ? "true" : "false");
+    startTransition(() => {
+        setOptimisticFilters({ easy: val });
+        updateUrlParams("easy", val ? "true" : "false");
+    });
   };
 
   const handleCountryChange = (val: string) => {
-    updateUrlParams("country", val);
+    startTransition(() => {
+        setOptimisticFilters({ country: val });
+        updateUrlParams("country", val);
+    });
   };
 
   const handleClearFilters = () => {
-    const current = new URLSearchParams(); 
     startTransition(() => {
+        setOptimisticFilters({ q: "", mode: "all", easy: false, country: "all" });
         router.replace(`${pathname}`, { scroll: false });
     });
   };
 
   const isAnyFilterActive = 
-    searchQuery !== "" || 
-    filterWorkMode !== "all" || 
-    filterEasyApply || 
-    filterCountry !== "all";
+    optimisticFilters.q !== "" || 
+    optimisticFilters.mode !== "all" || 
+    optimisticFilters.easy || 
+    optimisticFilters.country !== "all";
   
   const [visitedIds, setVisitedIds] = useState<Set<string>>(() => {
     const initialVisited = new Set<string>();
@@ -126,17 +142,18 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
     new Set(baseInboxJobs.map((j) => j.country).filter((c): c is string => !!c))
   ).sort();
 
+  // Utilisation de optimisticFilters pour le filtrage
   const inboxJobs = baseInboxJobs.filter((job) => {
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
+    if (optimisticFilters.q.trim()) {
+      const query = optimisticFilters.q.toLowerCase();
       const matchesSearch =
         job.title?.toLowerCase().includes(query) ||
         job.company?.toLowerCase().includes(query);
       if (!matchesSearch) return false;
     }
-    if (filterWorkMode !== "all" && job.workMode !== filterWorkMode) return false;
-    if (filterEasyApply && !job.isEasyApply) return false;
-    if (filterCountry !== "all" && job.country !== filterCountry) return false;
+    if (optimisticFilters.mode !== "all" && job.workMode !== optimisticFilters.mode) return false;
+    if (optimisticFilters.easy && !job.isEasyApply) return false;
+    if (optimisticFilters.country !== "all" && job.country !== optimisticFilters.country) return false;
     return true;
   });
 
@@ -274,11 +291,11 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
 
         {/* Filter Bar */}
         <FilterBar 
-            filterWorkMode={filterWorkMode}
+            filterWorkMode={optimisticFilters.mode}
             setFilterWorkMode={handleModeChange}
-            filterEasyApply={filterEasyApply}
+            filterEasyApply={optimisticFilters.easy}
             setFilterEasyApply={handleEasyChange}
-            filterCountry={filterCountry}
+            filterCountry={optimisticFilters.country}
             setFilterCountry={handleCountryChange}
             availableCountries={availableCountries}
             isAnyFilterActive={isAnyFilterActive}
