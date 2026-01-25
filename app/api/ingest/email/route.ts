@@ -30,13 +30,15 @@ export async function POST(req: Request) {
     const messageId = (formData.get("headers[message_id]") as string) || `no-id-${Date.now()}`;
 
     // --- DEBUG TEMPORAIRE : Sauvegarde du HTML pour analyse Cheerio ---
-    try {
-      const debugDir = path.join(process.cwd(), "debug_emails");
-      await fs.mkdir(debugDir, { recursive: true });
-      await fs.writeFile(path.join(debugDir, "last_email.html"), html);
-      console.log("[Email Ingest] HTML saved to debug_emails/last_email.html");
-    } catch (err) {
-      console.error("[Email Ingest] Failed to save debug HTML:", err);
+    if (process.env.NODE_ENV === "development") {
+        try {
+        const debugDir = path.join(process.cwd(), "debug_emails");
+        await fs.mkdir(debugDir, { recursive: true });
+        await fs.writeFile(path.join(debugDir, "last_email.html"), html);
+        console.log("[Email Ingest] HTML saved to debug_emails/last_email.html");
+        } catch (err) {
+        console.error("[Email Ingest] Failed to save debug HTML:", err);
+        }
     }
     // -----------------------------------------------------------------
 
