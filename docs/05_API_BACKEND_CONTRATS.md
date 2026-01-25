@@ -12,6 +12,10 @@ Query:
 
 Response: `{ items: Job[] }`
 
+### GET `/api/jobs/count`
+Compteur d'offres Inbox pour la sidebar.
+Response: `{ count: number }`
+
 ### PATCH `/api/jobs/:id`
 Body (JSON):
 - `status`: INBOX | SAVED | TRASH

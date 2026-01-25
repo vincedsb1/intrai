@@ -18,7 +18,7 @@ interface FilterBarProps {
 const FilterPill = ({ label, icon: Icon, active, onClick }: { label: string, icon?: React.ElementType, active: boolean, onClick: () => void }) => (
     <button
         onClick={onClick}
-        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all whitespace-nowrap 
+        className={`flex items-center gap-1.5 px-3 h-[38px] rounded-lg text-xs font-medium border transition-all whitespace-nowrap 
         ${active 
             ? 'bg-slate-900 text-white border-slate-900 shadow-md transform scale-[1.02] dark:bg-slate-200 dark:text-slate-900 dark:border-slate-200' 
             : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-700'}`}
@@ -83,7 +83,7 @@ export default function FilterBar({
             <select
                 value={filterCountry}
                 onChange={(e) => setFilterCountry(e.target.value)}
-                className="pl-8 pr-8 py-1.5 rounded-lg text-xs font-medium border focus:outline-none focus:ring-2 cursor-pointer appearance-none h-[30px]
+                className="pl-8 pr-8 py-1.5 rounded-lg text-xs font-medium border focus:outline-none focus:ring-2 cursor-pointer appearance-none h-[38px]
                 border-slate-200 bg-white text-slate-600 hover:bg-slate-50 focus:ring-blue-500/20
                 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700 dark:focus:ring-blue-500/50"
             >

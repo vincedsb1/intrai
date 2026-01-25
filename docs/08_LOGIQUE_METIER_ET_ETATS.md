@@ -6,7 +6,10 @@
   - **Logo** : Extraction URL + Nettoyage Proxy Google.
   - **Lieu** : Nettoyage "·" et parenthèses.
   - **Métadonnées** : Extraction Regex pour Salaire, Mode (Remote/Hybrid), Tags (Actif, Simplifiée).
-- **Déduplication** : Repose sur l'index unique `{ url: 1 }`. Les doublons sont ignorés silencieusement.
+- **Déduplication** : Repose sur l'index unique `{ url: 1 }`. 
+  - Si une URL existe déjà (peu importe le statut TRASH/SAVED/INBOX), l'annonce n'est **PAS** recréée.
+  - Seul le champ `updatedAt` est mis à jour pour signaler l'activité récente.
+  - Le statut et la catégorie existants sont préservés (pas de réapparition dans l'Inbox si déjà supprimé).
 
 ## Enrichissement IA (Batch)
 Lors de l'ingestion, un pipeline parallèle se déclenche :
