@@ -1,4 +1,4 @@
-import { MongoClient, MongoClientOptions } from "mongodb";
+import { MongoClient, MongoClientOptions, Db } from "mongodb";
 
 if (!process.env.MONGODB_URI) {
   throw new Error('Invalid/Missing environment variable: "MONGODB_URI"');
@@ -9,79 +9,118 @@ const options: MongoClientOptions = {
   // Optimisations pour environnement Serverless (Vercel) + VPS
   maxPoolSize: 1, 
   minPoolSize: 0,
-  serverSelectionTimeoutMS: 30000, // Augmenté à 30s
-  socketTimeoutMS: 60000, 
-  connectTimeoutMS: 30000, 
+  // Ferme les connexions inactives après 20s. 
+  // Essentiel sur Vercel : évite de réutiliser un socket tué par le firewall du VPS pendant le gel du lambda.
+  maxIdleTimeMS: 20000,
+  serverSelectionTimeoutMS: 5000, // Réduit à 5s (fail fast) pour éviter de bloquer l'UI trop longtemps
+  socketTimeoutMS: 45000, // Légèrement supérieur au timeout standard
+  connectTimeoutMS: 10000, // 10s pour établir la connexion initiale
   directConnection: true, // FORCE la connexion directe (essentiel pour VPS unique)
   family: 4, // Force IPv4 pour éviter les timeouts de résolution IPv6
   retryWrites: true,
   w: "majority",
 };
 
-let client: MongoClient;
-let clientPromise: Promise<MongoClient>;
-
-if (process.env.NODE_ENV === "development") {
-  // In development mode, use a global variable so that the value
-  // is preserved across module reloads caused by HMR (Hot Module Replacement).
-  let globalWithMongo = global as typeof globalThis & {
-    _mongoClientPromise?: Promise<MongoClient>;
-  };
-
-  if (!globalWithMongo._mongoClientPromise) {
-    console.log("[MONGO] 🟡 (Dev) Creating new MongoDB client & connecting...");
-    const timeStart = Date.now();
-    client = new MongoClient(uri, options);
-    globalWithMongo._mongoClientPromise = client.connect()
-      .then((c) => {
-        console.log(`[MONGO] 🟢 (Dev) Connected successfully in ${Date.now() - timeStart}ms`);
-        return c;
-      })
-      .catch((err) => {
-        console.error("[MONGO] 🔴 (Dev) Connection FAILED:", err);
-        throw err;
-      });
-  } else {
-    console.log("[MONGO] 🔵 (Dev) Reusing existing global client promise");
-  }
-  clientPromise = globalWithMongo._mongoClientPromise;
-} else {
-  // In production mode
-  console.log("[MONGO] 🟡 (Prod) Creating new MongoDB client & connecting...");
-  const timeStart = Date.now();
-  client = new MongoClient(uri, options);
-  
-  // On attache des logs aux événements du client pour voir s'il perd la connexion
-  client.on("serverDescriptionChanged", (event) => console.log("[MONGO] ℹ️ Topology change:", event.newDescription.type));
-  client.on("serverHeartbeatFailed", (event) => console.error("[MONGO] ⚠️ Heartbeat failed:", event.failure));
-  
-  clientPromise = client.connect()
-    .then((c) => {
-      console.log(`[MONGO] 🟢 (Prod) Connected successfully in ${Date.now() - timeStart}ms`);
-      return c;
-    })
-    .catch((err) => {
-      console.error("[MONGO] 🔴 (Prod) Connection FAILED:", err);
-      throw err;
-    });
-}
-
-// Export a module-scoped MongoClient promise. By doing this in a
-// separate module, the client can be shared across functions.
-export default clientPromise;
+let clientPromise: Promise<MongoClient> | null = null;
+let activeClient: MongoClient | null = null;
 
 /**
- * Helper to get the database instance
+ * Gestion du Singleton Client
+ * Gère la connexion et la reconnexion si nécessaire.
+ */
+async function getClient(): Promise<MongoClient> {
+  if (clientPromise) {
+    return clientPromise;
+  }
+
+  // En dev, on utilise global pour éviter le HMR spam
+  if (process.env.NODE_ENV === "development") {
+    let globalWithMongo = global as typeof globalThis & {
+      _mongoClientPromise?: Promise<MongoClient>;
+    };
+    if (!globalWithMongo._mongoClientPromise) {
+      console.log("[MONGO] 🟡 (Dev) Connecting...");
+      activeClient = new MongoClient(uri, options);
+      globalWithMongo._mongoClientPromise = activeClient.connect();
+    }
+    clientPromise = globalWithMongo._mongoClientPromise;
+    return clientPromise;
+  }
+
+  // En Prod
+  console.log("[MONGO] 🟡 (Prod) Connecting...");
+  activeClient = new MongoClient(uri, options);
+  
+  // Monitoring basique
+  activeClient.on("serverHeartbeatFailed", (e) => console.warn(`[MONGO] ⚠️ Heartbeat failed: ${e.failure}`));
+  
+  clientPromise = activeClient.connect()
+    .then(c => {
+      console.log("[MONGO] 🟢 Connected");
+      return c;
+    })
+    .catch(err => {
+      console.error("[MONGO] 🔴 Connect Error:", err);
+      clientPromise = null; // Reset pour permettre un retry
+      throw err;
+    });
+
+  return clientPromise;
+}
+
+/**
+ * Wrapper de Résilience (Retry Pattern)
+ * Exécute une opération DB. Si elle échoue à cause d'une erreur réseau/connexion,
+ * on force la fermeture du client, on reconnecte, et on réessaie UNE fois.
+ */
+export async function withMongo<T>(operation: (db: Db) => Promise<T>): Promise<T> {
+  try {
+    const client = await getClient();
+    return await operation(client.db());
+  } catch (error: any) {
+    // Liste des erreurs qui méritent un Retry (Socket closed, Topology destroyed, etc.)
+    const isNetworkError = 
+      error.name === "MongoNetworkError" || 
+      error.name === "MongoServerSelectionError" || 
+      error.message?.includes("topology") ||
+      error.message?.includes("socket") ||
+      error.message?.includes("buffering timed out");
+
+    if (isNetworkError) {
+      console.warn(`[MONGO] ⚠️ Network error detected (${error.name}). Resetting connection and retrying...`);
+      
+      // 1. Force Reset
+      if (activeClient) {
+        try { await activeClient.close(true); } catch (e) { /* ignore */ }
+      }
+      activeClient = null;
+      clientPromise = null;
+      
+      if (process.env.NODE_ENV === "development") {
+         (global as any)._mongoClientPromise = null;
+      }
+
+      // 2. Retry Logic
+      try {
+        const newClient = await getClient();
+        return await operation(newClient.db());
+      } catch (retryError) {
+        console.error("[MONGO] 🔴 Retry failed:", retryError);
+        throw retryError; // Si ça rate 2 fois, on abandonne
+      }
+    }
+
+    throw error; // Autres erreurs (Validation, Duplicate key...)
+  }
+}
+
+/**
+ * @deprecated Use `withMongo` instead for resilience.
+ * Helper legacy pour compatibilité, mais moins résilient.
  */
 export async function getDb() {
-  const client = await clientPromise;
+  const client = await getClient();
   return client.db();
 }
 
-/**
- * Helper to get a specific collection
- */
-export async function getCollection<T extends Document>(name: string) {
-  const db = await getDb();
-  return db.collection(name);
-}
+export default getClient;
