@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import { getDb } from "@/lib/mongo";
+import { withMongo } from "@/lib/mongo";
 import { CompanyAnalysis, AIAnalysis, LocationAnalysis } from "@/lib/types";
 
 const openai = new OpenAI({
@@ -7,123 +7,125 @@ const openai = new OpenAI({
 });
 
 export async function resolveCompanyAnalyses(companies: (string | null)[]): Promise<Map<string, AIAnalysis>> {
-  const db = await getDb();
-  const analysesCollection = db.collection<CompanyAnalysis>("company_analyses");
-  
-  // 1. Nettoyage et déduplication des noms d'entreprises
-  const uniqueCompanies = Array.from(new Set(
-    companies
-      .filter((c): c is string => !!c && c.trim().length > 0)
-      .map(c => c.trim())
-  ));
+  return await withMongo(async (db) => {
+    const analysesCollection = db.collection<CompanyAnalysis>("company_analyses");
+    
+    // 1. Nettoyage et déduplication des noms d'entreprises
+    const uniqueCompanies = Array.from(new Set(
+      companies
+        .filter((c): c is string => !!c && c.trim().length > 0)
+        .map(c => c.trim())
+    ));
 
-  if (uniqueCompanies.length === 0) return new Map();
+    if (uniqueCompanies.length === 0) return new Map();
 
-  const resultsMap = new Map<string, AIAnalysis>();
+    const resultsMap = new Map<string, AIAnalysis>();
 
-  // 2. Récupération du Cache (DB)
-  const existingAnalyses = await analysesCollection.find({
-    companyName: { $in: uniqueCompanies }
-  }).toArray();
+    // 2. Récupération du Cache (DB)
+    const existingAnalyses = await analysesCollection.find({
+      companyName: { $in: uniqueCompanies }
+    }).toArray();
 
-  const foundCompanies = new Set<string>();
-  
-  existingAnalyses.forEach(analysis => {
-    resultsMap.set(analysis.companyName, {
-      isPlatformOrAgency: analysis.isPlatformOrAgency,
-      type: analysis.type,
-      reason: analysis.reason,
-      createdAt: analysis.createdAt
+    const foundCompanies = new Set<string>();
+    
+    existingAnalyses.forEach(analysis => {
+      resultsMap.set(analysis.companyName, {
+        isPlatformOrAgency: analysis.isPlatformOrAgency,
+        type: analysis.type,
+        reason: analysis.reason,
+        createdAt: analysis.createdAt
+      });
+      foundCompanies.add(analysis.companyName);
     });
-    foundCompanies.add(analysis.companyName);
-  });
 
-  // 3. Identification des manquants
-  const missingCompanies = uniqueCompanies.filter(c => !foundCompanies.has(c));
+    // 3. Identification des manquants
+    const missingCompanies = uniqueCompanies.filter(c => !foundCompanies.has(c));
 
-  if (missingCompanies.length === 0) {
-    return resultsMap;
-  }
+    if (missingCompanies.length === 0) {
+      return resultsMap;
+    }
 
-  // 4. Appel IA Batch (seulement pour les manquants)
-  console.log(`[AI Batch] Analyzing ${missingCompanies.length} new companies:`, missingCompanies);
-  const newAnalyses = await analyzeCompaniesBatch(missingCompanies);
+    // 4. Appel IA Batch (seulement pour les manquants)
+    console.log(`[AI Batch] Analyzing ${missingCompanies.length} new companies:`, missingCompanies);
+    const newAnalyses = await analyzeCompaniesBatch(missingCompanies);
 
-  // 5. Sauvegarde et mise à jour de la Map
-  if (newAnalyses.length > 0) {
-    await analysesCollection.insertMany(newAnalyses.map(a => ({
-      companyName: a.company,
-      isPlatformOrAgency: a.isPlatformOrAgency,
-      type: a.type,
-      reason: a.reason,
-      createdAt: new Date()
-    })));
-
-    newAnalyses.forEach(a => {
-      resultsMap.set(a.company, {
+    // 5. Sauvegarde et mise à jour de la Map
+    if (newAnalyses.length > 0) {
+      await analysesCollection.insertMany(newAnalyses.map(a => ({
+        companyName: a.company,
         isPlatformOrAgency: a.isPlatformOrAgency,
         type: a.type,
         reason: a.reason,
         createdAt: new Date()
-      });
-    });
-  }
+      })));
 
-  return resultsMap;
+      newAnalyses.forEach(a => {
+        resultsMap.set(a.company, {
+          isPlatformOrAgency: a.isPlatformOrAgency,
+          type: a.type,
+          reason: a.reason,
+          createdAt: new Date()
+        });
+      });
+    }
+
+    return resultsMap;
+  });
 }
 
 export async function resolveLocationAnalyses(locations: (string | null)[]): Promise<Map<string, string>> {
-  const db = await getDb();
-  const analysesCollection = db.collection<LocationAnalysis>("location_analyses");
-  
-  // 1. Nettoyage
-  const uniqueLocations = Array.from(new Set(
-    locations
-      .filter((l): l is string => !!l && l.trim().length > 0)
-      .map(l => l.trim())
-  ));
+  return await withMongo(async (db) => {
+    const analysesCollection = db.collection<LocationAnalysis>("location_analyses");
+    
+    // 1. Nettoyage
+    const uniqueLocations = Array.from(new Set(
+      locations
+        .filter((l): l is string => !!l && l.trim().length > 0)
+        .map(l => l.trim())
+    ));
 
-  if (uniqueLocations.length === 0) return new Map();
+    if (uniqueLocations.length === 0) return new Map();
 
-  const resultsMap = new Map<string, string>();
+    const resultsMap = new Map<string, string>();
 
-  // 2. Cache
-  const existingAnalyses = await analysesCollection.find({
-    rawLocation: { $in: uniqueLocations }
-  }).toArray();
+    // 2. Cache
+    const existingAnalyses = await analysesCollection.find({
+      rawLocation: { $in: uniqueLocations }
+    }).toArray();
 
-  const foundLocations = new Set<string>();
-  
-  existingAnalyses.forEach(analysis => {
-    resultsMap.set(analysis.rawLocation, analysis.country);
-    foundLocations.add(analysis.rawLocation);
-  });
-
-  // 3. Manquants
-  const missingLocations = uniqueLocations.filter(l => !foundLocations.has(l));
-
-  if (missingLocations.length === 0) {
-    return resultsMap;
-  }
-
-  // 4. IA Batch
-  console.log(`[AI Batch] Analyzing ${missingLocations.length} new locations:`, missingLocations);
-  const newAnalyses = await analyzeLocationsBatch(missingLocations);
-
-  // 5. Sauvegarde
-  if (newAnalyses.length > 0) {
-    await analysesCollection.insertMany(newAnalyses.map(a => ({
-      rawLocation: a.raw,
-      country: a.country,
-      createdAt: new Date()
-    })));
-
-    newAnalyses.forEach(a => {
-      resultsMap.set(a.raw, a.country);
+    const foundLocations = new Set<string>();
+    
+    existingAnalyses.forEach(analysis => {
+      resultsMap.set(analysis.rawLocation, analysis.country);
+      foundLocations.add(analysis.rawLocation);
     });
-  }
 
-  return resultsMap;
+    // 3. Manquants
+    const missingLocations = uniqueLocations.filter(l => !foundLocations.has(l));
+
+    if (missingLocations.length === 0) {
+      return resultsMap;
+    }
+
+    // 4. IA Batch
+    console.log(`[AI Batch] Analyzing ${missingLocations.length} new locations:`, missingLocations);
+    const newAnalyses = await analyzeLocationsBatch(missingLocations);
+
+    // 5. Sauvegarde
+    if (newAnalyses.length > 0) {
+      await analysesCollection.insertMany(newAnalyses.map(a => ({
+        rawLocation: a.raw,
+        country: a.country,
+        createdAt: new Date()
+      })));
+
+      newAnalyses.forEach(a => {
+        resultsMap.set(a.raw, a.country);
+      });
+    }
+
+    return resultsMap;
+  });
 }
 
 interface BatchAnalysisResult {
