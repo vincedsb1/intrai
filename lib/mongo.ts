@@ -9,9 +9,12 @@ const options: MongoClientOptions = {
   // Optimisations pour environnement Serverless (Vercel) + VPS
   maxPoolSize: 1, 
   minPoolSize: 0,
-  serverSelectionTimeoutMS: 30000, // Augmenté à 30s
-  socketTimeoutMS: 60000, 
-  connectTimeoutMS: 30000, 
+  // Ferme les connexions inactives après 20s. 
+  // Essentiel sur Vercel : évite de réutiliser un socket tué par le firewall du VPS pendant le gel du lambda.
+  maxIdleTimeMS: 20000,
+  serverSelectionTimeoutMS: 5000, // Réduit à 5s (fail fast) pour éviter de bloquer l'UI trop longtemps
+  socketTimeoutMS: 45000, // Légèrement supérieur au timeout standard
+  connectTimeoutMS: 10000, // 10s pour établir la connexion initiale
   directConnection: true, // FORCE la connexion directe (essentiel pour VPS unique)
   family: 4, // Force IPv4 pour éviter les timeouts de résolution IPv6
   retryWrites: true,
