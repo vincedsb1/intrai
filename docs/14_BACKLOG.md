@@ -7,11 +7,13 @@
 - CRUD settings (whitelist/blacklist)
 - Ingestion webhook + tri
 - AI Detective (stub) + bannir auteur
+- Affichage raison du filtrage (Badge rouge + icône Shield) [DONE]
 
 ## Nice-to-have
 - Persistance “visitedAt” en DB
 - Pagination / infinite scroll
 - Recherche (title/company)
+- Système de filtrage extensible (au-delà des mots-clés)
 - Import CSV / RSS connectors
 - Auth simple pour protéger Réglages
 

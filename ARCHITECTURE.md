@@ -59,6 +59,9 @@ Une seule liste Inbox (flux unique), et des vues secondaires : Traitées (Saved/
   - **Compteur Sidebar**: Dynamique (Polling 30s) + Réactif (Event `inbox-count-update`).
   - **Toast**: Centré, Dismissible, avec Undo robuste.
 - **Animations**: `animate-enter`, `slide-up-toast`, transitions fluides.
+- **Warnings & Tri**: 
+  - IA : Icône `Bot` (Ambre) pour l'analyse de l'auteur.
+  - Filtre : Icône `ShieldAlert` (Rouge) affichant la raison du filtrage (`matchedKeyword`).
 
 ## Infra & Logs
 - **MongoDB**: Driver configuré en `directConnection: true` + `family: 4` + Timeouts longs (30s) pour VPS.
