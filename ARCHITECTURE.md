@@ -56,7 +56,9 @@ Une seule liste Inbox (flux unique), et des vues secondaires : Traitées (Saved/
 - **Design**: Slate Theme (`#F1F5F9`), Glassmorphism, Ombres douces (`shadow-soft`).
 - **Layout**: Sidebar fixe (Desktop) vs Sticky Header + Horizontal Tabs (Mobile).
 - **Feedback**:
-  - **Compteur Sidebar**: Dynamique (Polling 30s) + Réactif (Event `inbox-count-update`).
+  - **Compteur Sidebar**: Dynamique (Polling 60s via `useAutoRefresh`) + Réactif (Event `inbox-count-update`).
+  - **Auto-Refresh**: Vérification intelligente du changement de `count` toutes les minutes avec `router.refresh()` pour mise à jour fluide.
+  - **Indicateur Système**: Affiche l'heure de la dernière vérification dans le footer de la Sidebar.
   - **Toast**: Centré, Dismissible, avec Undo robuste.
 - **Animations**: `animate-enter`, `slide-up-toast`, transitions fluides.
 - **Warnings & Tri**: 

@@ -14,6 +14,7 @@
 - Pagination / infinite scroll
 - Recherche (title/company)
 - Système de filtrage extensible (Smart Rules) [DONE]
+- Auto-Refresh (Polling intelligent 60s) [DONE]
 - Import CSV / RSS connectors
 - Auth simple pour protéger Réglages
 

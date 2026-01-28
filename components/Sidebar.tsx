@@ -3,50 +3,42 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Inbox, CheckCircle, ShieldAlert, Settings } from "lucide-react";
+import { Inbox, CheckCircle, ShieldAlert, Settings, Clock } from "lucide-react";
+import { useAutoRefresh } from "@/lib/hooks/useAutoRefresh";
 
 export default function Sidebar() {
   const pathname = usePathname();
   const [activeTab, setActiveTab] = useState(pathname);
-  const [inboxCount, setInboxCount] = useState<number | null>(null);
+  const { currentCount, lastCheckedAt, isRefreshing } = useAutoRefresh(60000);
+  const [localCount, setLocalCount] = useState<number | null>(null);
 
   useEffect(() => {
     setActiveTab(pathname);
   }, [pathname]);
 
+  // Sync local count with hook count
   useEffect(() => {
-    const fetchCount = async () => {
-      try {
-        const res = await fetch("/api/jobs/count");
-        if (res.ok) {
-          const data = await res.json();
-          setInboxCount(data.count);
-        }
-      } catch (err) {
-        console.error("Failed to fetch inbox count", err);
-      }
-    };
+    if (currentCount !== null) {
+      setLocalCount(currentCount);
+    }
+  }, [currentCount]);
 
-    fetchCount();
-    // Refresh count every 30 seconds
-    const interval = setInterval(fetchCount, 30000);
-
+  useEffect(() => {
     // Listen for local updates from InboxView (instant feedback)
     const handleLocalUpdate = (event: CustomEvent) => {
       const change = event.detail?.change || 0;
-      setInboxCount((prev) => (prev !== null ? Math.max(0, prev + change) : prev));
+      setLocalCount((prev) => (prev !== null ? Math.max(0, prev + change) : prev));
     };
 
     window.addEventListener("inbox-count-update", handleLocalUpdate as EventListener);
 
     return () => {
-      clearInterval(interval);
       window.removeEventListener("inbox-count-update", handleLocalUpdate as EventListener);
     };
   }, []);
 
   const tabs = [
-    { id: "inbox", href: "/inbox", icon: Inbox, label: "Flux entrant", count: inboxCount },
+    { id: "inbox", href: "/inbox", icon: Inbox, label: "Flux entrant", count: localCount },
     { id: "processed", href: "/processed", icon: CheckCircle, label: "Traitées" },
     { id: "filtered", href: "/filtered", icon: ShieldAlert, label: "Filtrés Auto" },
   ];
@@ -122,12 +114,22 @@ export default function Sidebar() {
              <div className="text-[10px] font-bold uppercase tracking-wider mb-2 text-slate-400 dark:text-slate-500">Système</div>
              <div className="flex items-center gap-2 text-sm font-semibold p-2 rounded-lg border 
              text-emerald-600 bg-emerald-50/50 border-emerald-100/50
-             dark:text-emerald-400 dark:bg-emerald-500/10 dark:border-emerald-500/10">
+             dark:text-emerald-400 dark:bg-emerald-500/10 dark:border-emerald-500/10 mb-2">
                 <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className={`absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 ${isRefreshing ? 'animate-ping' : ''}`}></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                 </span>
                 Parser Actif
+             </div>
+             
+             <div className="flex items-center justify-between text-[10px] text-slate-400 dark:text-slate-500 px-1">
+                <div className="flex items-center gap-1">
+                  <Clock size={10} />
+                  <span>
+                    Vérifié à {lastCheckedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+                <div className={`w-1.5 h-1.5 rounded-full bg-emerald-500/50 ${!isRefreshing ? 'animate-pulse' : ''}`} title="Live Polling" />
              </div>
          </div>
       </div>
