@@ -8,8 +8,9 @@ export default async function SettingsPage() {
   
   // On passe les données réelles (sans le _id de mongo pour éviter les erreurs de sérialisation)
   const initialData = {
-    whitelist: settings.whitelist,
-    blacklist: settings.blacklist
+    whitelist: settings.whitelist || [],
+    blacklist: settings.blacklist || [],
+    rules: settings.rules || []
   };
 
   return <SettingsView initialData={initialData} />;

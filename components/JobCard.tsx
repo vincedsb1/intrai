@@ -8,6 +8,7 @@ import {
   Banknote,
   Briefcase,
   ShieldAlert,
+  Bot,
 } from "lucide-react";
 import { Job } from "@/lib/types";
 
@@ -133,15 +134,28 @@ export default function JobCard({
                 ))}
             </div>
             
-            {/* AI WARNING */}
-            {job.aiAnalysis?.isPlatformOrAgency && (
-                <div className="mt-3 flex items-center gap-2 p-2.5 rounded-lg text-xs font-medium border
-                bg-amber-50 border-amber-100 text-amber-800
-                dark:bg-amber-900/20 dark:border-amber-900/30 dark:text-amber-400">
-                    <ShieldAlert size={14} className="shrink-0 text-amber-600 dark:text-amber-500" />
-                    <span className="font-medium">{job.aiAnalysis.reason}</span>
-                </div>
-            )}
+            {/* SORTING INFO / WARNINGS */}
+            <div className="mt-3 flex flex-wrap gap-2">
+                {/* FILTER REASON */}
+                {(isFilteredView || job.category === "FILTERED") && job.matchedKeyword && (
+                    <div className="flex items-center gap-2 p-2.5 rounded-lg text-xs font-medium border
+                    bg-red-50 border-red-100 text-red-800
+                    dark:bg-red-900/20 dark:border-red-900/30 dark:text-red-400">
+                        <ShieldAlert size={14} className="shrink-0 text-red-600 dark:text-red-500" />
+                        <span className="font-medium">Filtre : {job.matchedKeyword}</span>
+                    </div>
+                )}
+
+                {/* AI WARNING */}
+                {job.aiAnalysis?.isPlatformOrAgency && (
+                    <div className="flex items-center gap-2 p-2.5 rounded-lg text-xs font-medium border
+                    bg-amber-50 border-amber-100 text-amber-800
+                    dark:bg-amber-900/20 dark:border-amber-900/30 dark:text-amber-400">
+                        <Bot size={14} className="shrink-0 text-amber-600 dark:text-amber-500" />
+                        <span className="font-medium">IA : {job.aiAnalysis.reason}</span>
+                    </div>
+                )}
+            </div>
         </div>
 
         {/* ACTIONS */}

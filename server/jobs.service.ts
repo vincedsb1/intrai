@@ -1,6 +1,7 @@
 import { withMongo } from "@/lib/mongo";
 import { Job, JobStatus, JobCategory, Settings } from "@/lib/types";
 import { getSettings, updateSettings } from "./settings.service";
+import { evaluateRule } from "./rules.engine";
 import { ObjectId } from "mongodb";
 
 const JOBS_COLLECTION = "jobs";
@@ -147,6 +148,17 @@ export async function ingestJob(jobData: Partial<Job>) {
         category = "FILTERED";
         matchedKeyword = term;
         break;
+      }
+    }
+
+    // 1.5 Smart Rules Check (if not filtered by Blacklist)
+    if (category !== "FILTERED" && settings.rules) {
+      for (const rule of settings.rules) {
+        if (evaluateRule(jobData, rule)) {
+          category = "FILTERED";
+          matchedKeyword = `Règle : ${rule.name}`;
+          break;
+        }
       }
     }
 
