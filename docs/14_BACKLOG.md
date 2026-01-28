@@ -13,7 +13,7 @@
 - Persistance “visitedAt” en DB
 - Pagination / infinite scroll
 - Recherche (title/company)
-- Système de filtrage extensible (au-delà des mots-clés)
+- Système de filtrage extensible (Smart Rules) [DONE]
 - Import CSV / RSS connectors
 - Auth simple pour protéger Réglages
 

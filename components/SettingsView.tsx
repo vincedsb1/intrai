@@ -2,21 +2,29 @@
 
 import React, { useState } from "react";
 import { Zap, ShieldAlert, X, Plus } from "lucide-react";
+import { SmartRule } from "@/lib/types";
+import SettingsRules from "./SettingsRules";
 
 interface SettingsViewProps {
   initialData: {
     whitelist: string[];
     blacklist: string[];
+    rules: SmartRule[];
   };
 }
 
 export default function SettingsView({ initialData }: SettingsViewProps) {
   const [whitelist, setWhitelist] = useState(initialData.whitelist);
   const [blacklist, setBlacklist] = useState(initialData.blacklist);
+  const [rules, setRules] = useState(initialData.rules);
   const [newBlacklistTerm, setNewBlacklistTerm] = useState("");
   const [newWhitelistTerm, setNewWhitelistTerm] = useState("");
 
-  const saveSettings = async (updatedWhitelist: string[], updatedBlacklist: string[]) => {
+  const saveSettings = async (
+    updatedWhitelist: string[],
+    updatedBlacklist: string[],
+    updatedRules: SmartRule[]
+  ) => {
     try {
       await fetch("/api/settings", {
         method: "PATCH",
@@ -24,6 +32,7 @@ export default function SettingsView({ initialData }: SettingsViewProps) {
         body: JSON.stringify({
           whitelist: updatedWhitelist,
           blacklist: updatedBlacklist,
+          rules: updatedRules,
         }),
       });
     } catch (error) {
@@ -31,19 +40,24 @@ export default function SettingsView({ initialData }: SettingsViewProps) {
     }
   };
 
+  const updateRules = (updatedRules: SmartRule[]) => {
+    setRules(updatedRules);
+    saveSettings(whitelist, blacklist, updatedRules);
+  };
+
   const addWhitelist = () => {
     if (newWhitelistTerm.trim()) {
       const newList = [...whitelist, newWhitelistTerm.trim()];
       setWhitelist(newList);
       setNewWhitelistTerm("");
-      saveSettings(newList, blacklist);
+      saveSettings(newList, blacklist, rules);
     }
   };
 
   const removeWhitelist = (term: string) => {
     const newList = whitelist.filter((t) => t !== term);
     setWhitelist(newList);
-    saveSettings(newList, blacklist);
+    saveSettings(newList, blacklist, rules);
   };
 
   const addBlacklist = () => {
@@ -51,14 +65,14 @@ export default function SettingsView({ initialData }: SettingsViewProps) {
       const newList = [...blacklist, newBlacklistTerm.trim()];
       setBlacklist(newList);
       setNewBlacklistTerm("");
-      saveSettings(whitelist, newList);
+      saveSettings(whitelist, newList, rules);
     }
   };
 
   const removeBlacklist = (term: string) => {
     const newList = blacklist.filter((t) => t !== term);
     setBlacklist(newList);
-    saveSettings(whitelist, newList);
+    saveSettings(whitelist, newList, rules);
   };
 
   return (
@@ -71,6 +85,10 @@ export default function SettingsView({ initialData }: SettingsViewProps) {
              Gérez vos règles de tri automatique.
           </p>
         </div>
+      </div>
+
+      <div className="mb-6 animate-enter">
+        <SettingsRules rules={rules} onUpdateRules={updateRules} />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-enter pb-32">
@@ -129,11 +147,11 @@ export default function SettingsView({ initialData }: SettingsViewProps) {
             
             <div className="flex flex-wrap gap-2 mb-6">
                 {blacklist.map(t => (
-                    <span key={t} className="px-3 py-1.5 rounded-xl text-sm font-medium flex items-center gap-2 group cursor-pointer transition-colors
+                    <button key={t} className="px-3 py-1.5 rounded-xl text-sm font-medium flex items-center gap-2 group cursor-pointer transition-colors
                     bg-slate-50 border border-slate-200 hover:bg-red-50 hover:border-red-200 hover:text-red-600
                     dark:bg-slate-950 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-red-900/20 dark:hover:border-red-500/30 dark:hover:text-red-400" onClick={() => removeBlacklist(t)}>
                         {t} <X size={14} className="opacity-50 group-hover:opacity-100" />
-                    </span>
+                    </button>
                 ))}
             </div>
 

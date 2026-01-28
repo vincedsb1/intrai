@@ -33,7 +33,7 @@ Une seule liste Inbox (flux unique), et des vues secondaires : Traitées (Saved/
 
 ## Entités (concept)
 - Job: offre ingérée
-- Settings: whitelist/blacklist (règles)
+- Settings: whitelist/blacklist, rules (Smart Rules conditionnelles)
 - Visit: état “vu” (persistant en DB `visitedAt`)
 - AIAnalysis: résultat d’analyse AI Detective (attaché au Job)
 
