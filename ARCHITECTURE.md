@@ -65,6 +65,11 @@ Une seule liste Inbox (flux unique), et des vues secondaires : Traitées (Saved/
   - IA : Icône `Bot` (Ambre) pour l'analyse de l'auteur.
   - Filtre : Icône `ShieldAlert` (Rouge) affichant la raison du filtrage (`matchedKeyword`).
 
+## Data Flow & State Management
+- **Server -> Client**: Les pages (`/inbox`, etc.) sont des Server Components qui fetchent les données initiales.
+- **Client State**: Les vues (`InboxView`, `FilteredView`) sont des Client Components qui reçoivent ces données initiales et les stockent dans un `useState`. Cela permet des interactions optimistes (suppression instantanée).
+- **Synchronisation**: Un `useEffect` dans les vues synchronise l'état local (`jobs`) avec les `props` (`initialJobs`). Ce pattern est essentiel pour que l'interface reflète les changements après un `router.refresh()` déclenché par l'auto-refresh.
+
 ## Infra & Logs
 - **MongoDB**: Driver configuré en `directConnection: true` + `family: 4` + Timeouts longs (30s) pour VPS.
 - **VPS**: Nécessite `net.ipv4.tcp_keepalive_time = 300` pour compatibilité Serverless Vercel.
