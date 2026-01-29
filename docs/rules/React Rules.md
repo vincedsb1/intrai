@@ -9,13 +9,14 @@
   - utile pour composants rendus fréquemment et props stables.
   - éviter si le composant est simple ou si les props changent constamment.
 - `useMemo` :
-  - réserver aux calculs coûteux ou structures dérivées volumineuses.
+  - réserver aux calculs coûteux ou structures dérivées volumineuses pour éviter des recalculs inutiles à chaque render.
 - `useCallback` :
   - stabiliser les callbacks passés aux enfants (et/ou dans deps).
 - Toujours vérifier les dépendances de hooks : pas de dépendances instables involontaires.
 
-## Suspense & boundaries
-- Utiliser `<Suspense>` pour découper l’UI et éviter de bloquer l’ensemble du rendu.
+## Lazy-loading, Suspense & boundaries
+- Utiliser `React.lazy` (ou `next/dynamic` dans Next.js) pour charger les composants lourds ou secondaires de manière asynchrone.
+- Utiliser `<Suspense>` pour entourer les composants asynchrones et définir un état de fallback (ex: skeleton) cohérent.
 - Utiliser des Error Boundaries :
   - via `error.tsx` côté Next App Router (prioritaire),
   - ou boundaries React locales sur des zones très risquées (widgets isolés).
