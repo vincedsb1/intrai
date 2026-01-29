@@ -1,36 +1,100 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+<div align="center">
+  <img src="public/intrai_cover.png" alt="intrai Cover" width="100%" />
+  
+  <br />
+  
+  <h3>An AI-powered job aggregator.</h3>
+  <p>
+    Centralize job offers into a single stream, triage with smart rules, and automatically filter out the noise.
+  </p>
+</div>
 
-## Getting Started
+<br />
 
-First, run the development server:
+<div align="center">
+  <img src="public/screenshot_intrai.jpg" alt="intrai Interface" width="100%" />
+</div>
+
+## ✨ Core Features
+
+-   **Single Stream Inbox**: No more juggling dozens of email alerts. All jobs are centralized in one clean interface.
+-   **Smart Filtering**: Create powerful, multi-condition rules (e.g., `IF location IS NOT "Nantes" AND workMode IS "On-site" THEN filter`).
+-   **Simple Triage**: Quickly decide on each offer: Save for later or move to Trash.
+-   **AI Detective**: Automatically analyzes job authors to identify and help you ban recruiters or consulting agencies.
+-   **Auto-Refresh**: The interface polls for new jobs every minute, keeping your inbox up-to-date automatically.
+-   **Light & Dark Mode**: A sleek, modern UI that adapts to your preference.
+
+## 🛠️ Tech Stack
+
+-   **Framework**: [Next.js](https://nextjs.org/) (App Router)
+-   **Language**: [TypeScript](https://www.typescriptlang.org/)
+-   **Styling**: [Tailwind CSS](https://tailwindcss.com/)
+-   **Database**: [MongoDB](https://www.mongodb.com/)
+-   **Deployment**: [Vercel](https://vercel.com/) (or any Node.js environment)
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+-   [Node.js](https://nodejs.org/) (v18 or later)
+-   `npm` or `yarn`
+-   A [MongoDB](https://www.mongodb.com/try/download/community) database (local or cloud-hosted like MongoDB Atlas)
+
+### 1. Installation
+
+Clone the repository and install the dependencies:
+
+```bash
+git clone https://github.com/vdesbrosses/intrai.git
+cd intrai
+npm install
+```
+
+### 2. Environment Variables
+
+Create a `.env.local` file in the root of the project and add the following variables.
+
+**⚠️ Important**: Never commit this file to your repository.
+
+```env
+# .env.local
+
+# Your MongoDB connection string.
+# Example for a local instance: mongodb://localhost:27017/intrai
+MONGODB_URI="YOUR_MONGO_URI"
+
+# A secret string to secure your webhook endpoint. 
+# Generate a long, random string.
+WEBHOOK_SECRET="YOUR_SECRET_HERE"
+
+# Optional: If you want to use a real AI provider for analysis.
+# AI_API_KEY="sk-..."
+```
+
+### 3. Run the Development Server
+
+You can now start the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser to see the application.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## ⚙️ Ingestion Setup (CloudMailin)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+`intrai` is designed to receive job offers via a webhook, typically from an email parsing service like [CloudMailin](https://www.cloudmailin.com/).
 
-## Learn More
+1.  **Get Your Webhook URL**: Once deployed (or using a tunneling service like `ngrok` for local development), your webhook URL will be:
+    `https://<your-app-domain>/api/ingest/email?secret=<YOUR_WEBHOOK_SECRET>`
 
-To learn more about Next.js, take a look at the following resources:
+2.  **Configure CloudMailin**:
+    -   Create an account on CloudMailin and get your unique email address (e.g., `your-inbox@cloudmailin.net`).
+    -   Set the "Target" of this address to your webhook URL.
+    -   Ensure the format is set to `JSON (Normalized)`.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+3.  **Forward Your Emails**: Set up a forwarding rule in your email client (Gmail, Outlook, etc.) to automatically forward job alert emails to your CloudMailin address. Now, every new job alert will appear in `intrai` automatically!
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 📄 License
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
