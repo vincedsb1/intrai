@@ -1,7 +1,8 @@
 const { MongoClient } = require('mongodb');
+require('dotenv').config({ path: '.env.local' });
 
-// URI avec le bon mot de passe (hardcodé pour ce script temporaire)
-const uri = "mongodb://intrai_user:z98h4kvOiN8ENVzVEgOtdSuEphc6PtPR@5.250.176.153:27017/intrai";
+// URI via env
+const uri = process.env.MONGODB_URI;
 
 async function findGmailLink() {
   const client = new MongoClient(uri);

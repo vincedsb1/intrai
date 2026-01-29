@@ -1,7 +1,7 @@
 const { MongoClient } = require('mongodb');
+require('dotenv').config({ path: '.env.local' });
 
-// URI avec le bon mot de passe
-const uri = "mongodb://intrai_user:z98h4kvOiN8ENVzVEgOtdSuEphc6PtPR@5.250.176.153:27017/intrai";
+const uri = process.env.MONGODB_URI;
 
 async function checkLastJobDate() {
   const client = new MongoClient(uri);
