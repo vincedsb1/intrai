@@ -12,33 +12,33 @@
 <br />
 
 <div align="center">
-  <img src="public/screenshot_intrai.jpg" alt="intrai Interface" width="100%" />
+  <img src="public/screenshot_intrai.png" alt="intrai Interface" width="100%" />
 </div>
 
 ## ✨ Core Features
 
--   **Single Stream Inbox**: No more juggling dozens of email alerts. All jobs are centralized in one clean interface.
--   **Smart Filtering**: Create powerful, multi-condition rules (e.g., `IF location IS NOT "Nantes" AND workMode IS "On-site" THEN filter`).
--   **Simple Triage**: Quickly decide on each offer: Save for later or move to Trash.
--   **AI Detective**: Automatically analyzes job authors to identify and help you ban recruiters or consulting agencies.
--   **Auto-Refresh**: The interface polls for new jobs every minute, keeping your inbox up-to-date automatically.
--   **Light & Dark Mode**: A sleek, modern UI that adapts to your preference.
+- **Single Stream Inbox**: No more juggling dozens of email alerts. All jobs are centralized in one clean interface.
+- **Smart Filtering**: Create powerful, multi-condition rules (e.g., `IF location IS NOT "Nantes" AND workMode IS "On-site" THEN filter`).
+- **Simple Triage**: Quickly decide on each offer: Save for later or move to Trash.
+- **AI Detective**: Automatically analyzes job authors to identify and help you ban recruiters or consulting agencies.
+- **Auto-Refresh**: The interface polls for new jobs every minute, keeping your inbox up-to-date automatically.
+- **Light & Dark Mode**: A sleek, modern UI that adapts to your preference.
 
 ## 🛠️ Tech Stack
 
--   **Framework**: [Next.js](https://nextjs.org/) (App Router)
--   **Language**: [TypeScript](https://www.typescriptlang.org/)
--   **Styling**: [Tailwind CSS](https://tailwindcss.com/)
--   **Database**: [MongoDB](https://www.mongodb.com/)
--   **Deployment**: [Vercel](https://vercel.com/) (or any Node.js environment)
+- **Framework**: [Next.js](https://nextjs.org/) (App Router)
+- **Language**: [TypeScript](https://www.typescriptlang.org/)
+- **Styling**: [Tailwind CSS](https://tailwindcss.com/)
+- **Database**: [MongoDB](https://www.mongodb.com/)
+- **Deployment**: [Vercel](https://vercel.com/) (or any Node.js environment)
 
 ## 🚀 Getting Started
 
 ### Prerequisites
 
--   [Node.js](https://nodejs.org/) (v18 or later)
--   `npm` or `yarn`
--   A [MongoDB](https://www.mongodb.com/try/download/community) database (local or cloud-hosted like MongoDB Atlas)
+- [Node.js](https://nodejs.org/) (v18 or later)
+- `npm` or `yarn`
+- A [MongoDB](https://www.mongodb.com/try/download/community) database (local or cloud-hosted like MongoDB Atlas)
 
 ### 1. Installation
 
@@ -63,7 +63,7 @@ Create a `.env.local` file in the root of the project and add the following vari
 # Example for a local instance: mongodb://localhost:27017/intrai
 MONGODB_URI="YOUR_MONGO_URI"
 
-# A secret string to secure your webhook endpoint. 
+# A secret string to secure your webhook endpoint.
 # Generate a long, random string.
 WEBHOOK_SECRET="YOUR_SECRET_HERE"
 
@@ -89,9 +89,9 @@ Open [http://localhost:3000](http://localhost:3000) in your browser to see the a
     `https://<your-app-domain>/api/ingest/email?secret=<YOUR_WEBHOOK_SECRET>`
 
 2.  **Configure CloudMailin**:
-    -   Create an account on CloudMailin and get your unique email address (e.g., `your-inbox@cloudmailin.net`).
-    -   Set the "Target" of this address to your webhook URL.
-    -   Ensure the format is set to `JSON (Normalized)`.
+    - Create an account on CloudMailin and get your unique email address (e.g., `your-inbox@cloudmailin.net`).
+    - Set the "Target" of this address to your webhook URL.
+    - Ensure the format is set to `JSON (Normalized)`.
 
 3.  **Forward Your Emails**: Set up a forwarding rule in your email client (Gmail, Outlook, etc.) to automatically forward job alert emails to your CloudMailin address. Now, every new job alert will appear in `intrai` automatically!
 
