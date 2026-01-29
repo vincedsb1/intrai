@@ -18,7 +18,8 @@ Ces règles guident la conception et l’implémentation sur **Next.js (App Rout
 ## Routing & structure App Router
 - Utiliser `app/` pour le routing ; conventions : `layout.tsx`, `page.tsx`, `loading.tsx`, `error.tsx`, `not-found.tsx`.
 - Routes et segments en **kebab-case** (minuscules).
-- Utiliser `next/navigation` (pas `next/router`) pour router côté client.
+- Utiliser exclusivement `next/link` (composant `<Link />`) pour la navigation interne afin de bénéficier du prefetching automatique.
+- Utiliser `next/navigation` (pas `next/router`) pour router côté client (hooks `usePathname`, `useRouter`, etc.).
 - Middleware : uniquement auth/headers/redirects ; éviter tout calcul lourd.
 
 ## Server vs Client Components
@@ -32,6 +33,8 @@ Ces règles guident la conception et l’implémentation sur **Next.js (App Rout
   - SSG par défaut quand possible.
   - ISR via `next: { revalidate: X }`.
   - SSR/dynamic via `export const dynamic = 'force-dynamic'` quand nécessaire.
+- **Next 15+** : Utiliser la directive `"use cache"` pour une mise en cache granulaire des fonctions serveur coûteuses.
+- **Revalidation** : Utiliser `revalidatePath` ou `revalidateTag` dans les Server Actions pour invalider le cache après une mutation.
 - Éviter le refetching/redondance : dédupliquer si besoin ; paginer les listes volumineuses (virtualisation si très grande liste).
 
 ## Streaming, loading states, UX

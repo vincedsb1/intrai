@@ -20,6 +20,11 @@ export default function InboxView({ initialJobs }: InboxViewProps) {
   const [isPending, startTransition] = useTransition();
 
   const [jobs, setJobs] = useState<Job[]>(initialJobs);
+
+  // Sync local state with server data (e.g. after auto-refresh)
+  React.useEffect(() => {
+    setJobs(initialJobs);
+  }, [initialJobs]);
   
   // Helper pour mettre à jour la sidebar instantanément
   const updateSidebarCount = (change: number) => {
