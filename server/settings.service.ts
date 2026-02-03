@@ -13,6 +13,7 @@ export async function getSettings(): Promise<Settings> {
         whitelist: ["React", "Node.js", "TypeScript"],
         blacklist: ["Stage", "Alternance", "ESN"],
         rules: [],
+        deduplicateCrossRegion: false,
         updatedAt: new Date(),
       };
       await db.collection(SETTINGS_COLLECTION).insertOne(defaultSettings);
@@ -24,7 +25,7 @@ export async function getSettings(): Promise<Settings> {
 }
 
 export async function updateSettings(
-  updates: Partial<Pick<Settings, "whitelist" | "blacklist" | "rules">>
+  updates: Partial<Pick<Settings, "whitelist" | "blacklist" | "rules" | "deduplicateCrossRegion">>
 ): Promise<Settings> {
   return await withMongo(async (db) => {
     await db.collection(SETTINGS_COLLECTION).updateOne(

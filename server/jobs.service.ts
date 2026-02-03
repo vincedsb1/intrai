@@ -138,6 +138,26 @@ export async function ingestJob(jobData: Partial<Job>) {
     let category: JobCategory = "EXPLORE";
     let matchedKeyword: string | null = null;
 
+    // 0.5. CROSS-REGION DEDUPLICATION (Title + Company check for last 30 days)
+    if (settings.deduplicateCrossRegion && jobData.title && jobData.company) {
+       const thirtyDaysAgo = new Date();
+       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+       // Case-insensitive check using Regex
+       // Note: This might be slow on huge datasets without proper indexing, but fine for now.
+       const duplicate = await db.collection(JOBS_COLLECTION).findOne({
+         title: { $regex: new RegExp(`^${jobData.title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, "i") },
+         company: { $regex: new RegExp(`^${jobData.company.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, "i") },
+         createdAt: { $gte: thirtyDaysAgo }
+       });
+
+       if (duplicate) {
+          console.log(`[INGEST] 🟠 Cross-region duplicate found: "${jobData.title}" at "${jobData.company}". Filtering.`);
+          category = "FILTERED";
+          matchedKeyword = "Doublon (Titre/Entreprise)";
+       }
+    }
+
     // 1. Blacklist check
     const company = jobData.company?.toLowerCase() || "";
     const title = jobData.title?.toLowerCase() || "";
