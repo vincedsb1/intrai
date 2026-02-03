@@ -9,8 +9,21 @@ import { useAutoRefresh } from "@/lib/hooks/useAutoRefresh";
 export default function Sidebar() {
   const pathname = usePathname();
   const [activeTab, setActiveTab] = useState(pathname);
-  const { currentCount, lastCheckedAt, isRefreshing } = useAutoRefresh(60000);
+  const { currentCount, counts, lastCheckedAt, isRefreshing } = useAutoRefresh(60000);
   const [localCount, setLocalCount] = useState<number | null>(null);
+
+  // Local Storage State for "Last Seen" counts
+  const [lastSeenProcessed, setLastSeenProcessed] = useState<number>(0);
+  const [lastSeenFiltered, setLastSeenFiltered] = useState<number>(0);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    const storedProcessed = localStorage.getItem("lastSeenProcessed");
+    const storedFiltered = localStorage.getItem("lastSeenFiltered");
+    if (storedProcessed) setLastSeenProcessed(parseInt(storedProcessed, 10));
+    if (storedFiltered) setLastSeenFiltered(parseInt(storedFiltered, 10));
+  }, []);
 
   useEffect(() => {
     setActiveTab(pathname);
@@ -37,10 +50,36 @@ export default function Sidebar() {
     };
   }, []);
 
+  const handleTabClick = (href: string, type?: "processed" | "filtered") => {
+    setActiveTab(href);
+    if (type && counts) {
+      if (type === "processed") {
+        setLastSeenProcessed(counts.processedToday);
+        localStorage.setItem("lastSeenProcessed", counts.processedToday.toString());
+      } else if (type === "filtered") {
+        setLastSeenFiltered(counts.filteredToday);
+        localStorage.setItem("lastSeenFiltered", counts.filteredToday.toString());
+      }
+    }
+  };
+
+  const getBadgeCount = (type: "processed" | "filtered") => {
+    if (!counts || !mounted) return null;
+    const serverCount = type === "processed" ? counts.processedToday : counts.filteredToday;
+    const lastSeen = type === "processed" ? lastSeenProcessed : lastSeenFiltered;
+    
+    // Si le compteur serveur est inférieur au dernier vu, c'est qu'il y a eu un reset serveur (nouvelle journée)
+    // Dans ce cas, tous les items sont nouveaux par rapport à "aujourd'hui"
+    const effectiveLastSeen = serverCount < lastSeen ? 0 : lastSeen;
+    
+    const badge = serverCount - effectiveLastSeen;
+    return badge > 0 ? badge : null;
+  };
+
   const tabs = [
     { id: "inbox", href: "/inbox", icon: Inbox, label: "Flux entrant", count: localCount },
-    { id: "processed", href: "/processed", icon: CheckCircle, label: "Traitées" },
-    { id: "filtered", href: "/filtered", icon: ShieldAlert, label: "Filtrés Auto" },
+    { id: "processed", href: "/processed", icon: CheckCircle, label: "Traitées", count: getBadgeCount("processed") },
+    { id: "filtered", href: "/filtered", icon: ShieldAlert, label: "Filtrés Auto", count: getBadgeCount("filtered") },
   ];
 
   return (
@@ -62,12 +101,13 @@ export default function Sidebar() {
         {tabs.map((tab) => {
             const isActive = activeTab.startsWith(tab.href);
             const Icon = tab.icon;
+            const badgeCount = tab.count;
             
             return (
                 <Link
                     key={tab.id}
                     href={tab.href}
-                    onClick={() => setActiveTab(tab.href)}
+                    onClick={() => handleTabClick(tab.href, tab.id === "processed" || tab.id === "filtered" ? tab.id : undefined)}
                     className={`
                         w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 group relative overflow-hidden
                         ${isActive 
@@ -78,12 +118,12 @@ export default function Sidebar() {
                     <Icon size={20} className={`transition-colors relative z-10 ${isActive ? 'stroke-[2.5px]' : 'stroke-2'}`} />
                     <span className="relative z-10">{tab.label}</span>
                     {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-500 rounded-r-full shadow-glow"></div>}
-                    {tab.id === 'inbox' && tab.count !== null && (
+                    {badgeCount !== null && badgeCount !== 0 && (
                         <span className={`ml-auto text-xs font-bold px-2 py-0.5 rounded-full relative z-10 
                         ${isActive 
                             ? 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300' 
                             : 'bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-500'}`}>
-                           {tab.count}
+                           {badgeCount}
                         </span>
                     )}
                 </Link>

@@ -6,6 +6,7 @@ export function useAutoRefresh(intervalMs: number = 60000) {
   const [lastCheckedAt, setLastCheckedAt] = useState<Date>(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [currentCount, setCurrentCount] = useState<number | null>(null);
+  const [counts, setCounts] = useState<{ inbox: number; processedToday: number; filteredToday: number } | null>(null);
   
   // On utilise un ref pour stocker le count précédent afin de comparer
   // sans déclencher de re-renders inutiles
@@ -20,10 +21,15 @@ export function useAutoRefresh(intervalMs: number = 60000) {
         if (!res.ok) throw new Error("Failed to fetch count");
         
         const data = await res.json();
-        const count = data.count;
+        const count = data.count; // Backward compat (inbox)
         
         setLastCheckedAt(new Date());
         setCurrentCount(count);
+        setCounts({
+          inbox: data.inbox,
+          processedToday: data.processedToday,
+          filteredToday: data.filteredToday
+        });
 
         // Première exécution : on initialise juste la ref
         if (prevCountRef.current === null) {
@@ -54,5 +60,5 @@ export function useAutoRefresh(intervalMs: number = 60000) {
     return () => clearInterval(timer);
   }, [intervalMs, router]);
 
-  return { lastCheckedAt, isRefreshing, currentCount };
+  return { lastCheckedAt, isRefreshing, currentCount, counts };
 }

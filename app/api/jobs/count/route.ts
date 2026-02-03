@@ -1,21 +1,18 @@
 import { NextResponse } from "next/server";
-import { getDb } from "@/lib/mongo";
+import { getJobCounts } from "@/server/jobs.service";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const db = await getDb();
-    
-    // Compter les jobs avec status=INBOX et category!=FILTERED (pour correspondre à la vue Inbox)
-    const count = await db.collection("jobs").countDocuments({
-      status: "INBOX",
-      category: { $ne: "FILTERED" }
-    });
+    const counts = await getJobCounts();
 
-    return NextResponse.json({ count });
+    return NextResponse.json({ 
+      count: counts.inbox, // Retain 'count' for backward compatibility
+      ...counts
+    });
   } catch (error) {
     console.error("Error counting jobs:", error);
-    return NextResponse.json({ count: 0 }, { status: 500 });
+    return NextResponse.json({ count: 0, inbox: 0, processedToday: 0, filteredToday: 0 }, { status: 500 });
   }
 }

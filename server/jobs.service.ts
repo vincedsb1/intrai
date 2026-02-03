@@ -205,3 +205,34 @@ export async function ingestJob(jobData: Partial<Job>) {
     return { ...newJob, id: result.insertedId.toString() };
   });
 }
+
+export async function getJobCounts() {
+  return await withMongo(async (db) => {
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const [inboxCount, processedToday, filteredToday] = await Promise.all([
+      // Inbox: Total actuel (comme avant)
+      db.collection(JOBS_COLLECTION).countDocuments({
+        status: "INBOX",
+        category: { $ne: "FILTERED" }
+      }),
+      // Processed: Traités (Saved/Trash) aujourd'hui
+      db.collection(JOBS_COLLECTION).countDocuments({
+        status: { $in: ["SAVED", "TRASH"] },
+        createdAt: { $gte: startOfDay }
+      }),
+      // Filtered: Filtrés aujourd'hui
+      db.collection(JOBS_COLLECTION).countDocuments({
+        category: "FILTERED",
+        createdAt: { $gte: startOfDay }
+      })
+    ]);
+
+    return {
+      inbox: inboxCount,
+      processedToday,
+      filteredToday
+    };
+  });
+}
