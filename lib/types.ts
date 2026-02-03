@@ -78,5 +78,6 @@ export interface Settings {
   whitelist: string[];
   blacklist: string[];
   rules: SmartRule[];
+  deduplicateCrossRegion?: boolean;
   updatedAt: Date | string;
 }
