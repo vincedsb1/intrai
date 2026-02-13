@@ -1,0 +1,1 @@
+/Users/vincentdesbrosses/.specgen-kit/workflow/checklists.md

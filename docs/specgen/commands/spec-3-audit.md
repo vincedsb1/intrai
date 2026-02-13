@@ -1,0 +1,1 @@
+/Users/vincentdesbrosses/.specgen-kit/commands/spec-3-audit.md

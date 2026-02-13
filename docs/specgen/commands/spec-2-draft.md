@@ -1,0 +1,1 @@
+/Users/vincentdesbrosses/.specgen-kit/commands/spec-2-draft.md
