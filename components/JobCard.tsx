@@ -77,9 +77,9 @@ export default function JobCard({
         {/* LOGO */}
         <div className="shrink-0">
             {job.logoUrl && !imgError ? (
-                <img 
-                    src={job.logoUrl} 
-                    alt="" 
+                <img
+                    src={`/api/image-proxy?url=${encodeURIComponent(job.logoUrl)}`}
+                    alt=""
                     className="w-12 h-12 md:w-14 md:h-14 rounded-xl object-contain border border-slate-100 dark:border-slate-700 shadow-sm bg-white dark:bg-slate-800" 
                     onError={() => setImgError(true)}
                 />
