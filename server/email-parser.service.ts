@@ -80,12 +80,28 @@ function parseLinkedInHTML(html: string): ParsedJob[] {
   const $ = cheerio.load(html);
   const jobs: ParsedJob[] = [];
 
+  // --- DEBUG LOGS : Diagnostic images ---
+  const allImages = $('img');
+  console.log(`[Parser DEBUG] Total <img> tags found: ${allImages.length}`);
+  allImages.each((i, img) => {
+    const src = $(img).attr('src') || '(no src)';
+    const alt = $(img).attr('alt') || '(no alt)';
+    // Log les 200 premiers chars de chaque src pour voir les patterns
+    console.log(`[Parser DEBUG] img[${i}] alt="${alt}" src="${src.substring(0, 200)}"`);
+  });
+
+  const linkedinImages = $('img[src*="media.licdn.com/dms/image"]');
+  console.log(`[Parser DEBUG] LinkedIn logo images matched: ${linkedinImages.length}`);
+  // --- FIN DEBUG ---
+
   // Stratégie : On cherche les logos d'entreprise comme ancrage
   $('img[src*="media.licdn.com/dms/image"]').each((_, img) => {
     try {
       const $img = $(img);
       let logoUrl = $img.attr('src') || null;
       const company = $img.attr('alt') || "Inconnu";
+
+      console.log(`[Parser DEBUG] Raw logoUrl for "${company}": ${logoUrl?.substring(0, 150)}`);
 
       // Nettoyage URL Logo : Gmail/GoogleProxy wrapper
       // Si l'URL contient le proxy Google, on extrait la partie après le '#'
@@ -94,12 +110,15 @@ function parseLinkedInHTML(html: string): ParsedJob[] {
         if (parts.length > 1) {
           logoUrl = parts[1];
         }
+        console.log(`[Parser DEBUG] After Google proxy cleanup: ${logoUrl?.substring(0, 150)}`);
       }
-      
+
       // Décodage des entités HTML (ex: &amp; -> &) pour que l'URL soit valide
       if (logoUrl) {
         logoUrl = logoUrl.replace(/&amp;/g, "&");
       }
+
+      console.log(`[Parser DEBUG] Final logoUrl for "${company}": ${logoUrl?.substring(0, 200)}`);
 
       // On remonte au parent <td> puis <tr> pour trouver le contexte
       const $row = $img.closest('tr');

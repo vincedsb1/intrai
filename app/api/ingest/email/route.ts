@@ -52,6 +52,12 @@ export async function POST(req: Request) {
 
     console.log(`[Email Ingest] Strategy: ${parseResult.source}, Found ${jobs.length} jobs`);
 
+    // --- DEBUG LOGOS ---
+    for (const j of jobs) {
+      console.log(`[Email Ingest DEBUG] Job: "${j.title}" | Company: "${j.company}" | logoUrl: ${j.logoUrl ? j.logoUrl.substring(0, 150) : 'NULL'} | Grade: ${j.parserGrade}`);
+    }
+    // --- FIN DEBUG ---
+
     // 4.5 Analyse IA (Entreprises + Localisations) en parallèle
     const uniqueCompanies = jobs.map(j => j.company);
     const uniqueLocations = jobs.map(j => j.location);
