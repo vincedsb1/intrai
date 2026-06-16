@@ -1,5 +1,5 @@
 import { withMongo } from "@/lib/mongo";
-import { Settings } from "@/lib/types";
+import { Settings, SmartRule } from "@/lib/types";
 
 const SETTINGS_COLLECTION = "settings";
 
@@ -30,17 +30,31 @@ export async function updateSettings(
   return await withMongo(async (db) => {
     await db.collection(SETTINGS_COLLECTION).updateOne(
       {},
-      { 
-        $set: { 
-          ...updates, 
-          updatedAt: new Date() 
-        } 
+      {
+        $set: {
+          ...updates,
+          updatedAt: new Date()
+        }
       },
       { upsert: true }
     );
 
-    // Réutilisation interne de getSettings, qui utilise aussi withMongo.
-    // Attention: withMongo est réentrant (il réutilise le client si actif), donc pas de double connexion.
+    return getSettings();
+  });
+}
+
+// Atomic append rule using $push (prevents concurrent edit loss)
+export async function addSmartRule(rule: SmartRule): Promise<Settings> {
+  return await withMongo(async (db) => {
+    await db.collection(SETTINGS_COLLECTION).updateOne(
+      {},
+      {
+        $push: { rules: rule },
+        $set: { updatedAt: new Date() },
+      },
+      { upsert: true }
+    );
+
     return getSettings();
   });
 }

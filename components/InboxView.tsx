@@ -2,13 +2,15 @@
 
 import React, { useState, useEffect, useTransition, useOptimistic } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { Inbox } from "lucide-react";
+import { Inbox, Settings as SettingsIcon } from "lucide-react";
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import JobCard from "./JobCard";
+import FilterOldJobsDialog from "./FilterOldJobsDialog";
 import BlacklistModal from "./BlacklistModal";
 import FilterBar from "./FilterBar";
 import Toast from "./Toast";
 import Pagination from "./Pagination";
-import { Job, JobStatus } from "@/lib/types";
+import { Job, JobStatus, SmartRule } from "@/lib/types";
 
 interface InboxViewProps {
   initialJobs: Job[];
@@ -125,6 +127,7 @@ export default function InboxView({
 
   const [isBlacklistModalOpen, setIsBlacklistModalOpen] = useState(false);
   const [blacklistTerm, setBlacklistTerm] = useState("");
+  const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false);
 
   const [toast, setToast] = useState<{ msg: string; type: "trash" | "success" } | null>(null);
   const [lastTrashedJob, setLastTrashedJob] = useState<Job | null>(null);
@@ -266,6 +269,48 @@ export default function InboxView({
     );
   };
 
+  const handleCreateFilterRule = async (days: number) => {
+    try {
+      const currentSettings = await fetch("/api/settings").then(r => r.json());
+      const newRule: SmartRule = {
+        id: crypto.randomUUID(),
+        name: `Auto: ${days} jours`,
+        enabled: true,
+        conditions: [
+          {
+            id: crypto.randomUUID(),
+            field: "createdAt",
+            operator: "olderThan",
+            value: days,
+          },
+        ],
+        action: "FILTER",
+      };
+
+      const res = await fetch("/api/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          rules: [...currentSettings.rules, newRule],
+        }),
+      });
+
+      if (!res.ok) throw new Error("Failed to create rule");
+      const data = await res.json();
+      const filteredCount = data.filteredCount || 0;
+
+      setToast({
+        msg: `${filteredCount} offre${filteredCount !== 1 ? "s" : ""} filtrée${filteredCount !== 1 ? "s" : ""} (> ${days} jour${days !== 1 ? "s" : ""})`,
+        type: "success",
+      });
+
+      router.refresh();
+    } catch (error) {
+      console.error("[InboxView] Filter rule creation failed:", error);
+      alert("Erreur lors du filtrage");
+    }
+  };
+
   const groupedJobs = inboxJobs.reduce(
     (acc, job) => {
       const dateKey = job.createdAt
@@ -300,14 +345,37 @@ export default function InboxView({
             Gérez vos nouvelles offres d&apos;emploi.
           </p>
         </div>
-        <button
-          onClick={() => setVisitedIds(new Set())}
-          className="text-sm font-bold px-4 py-2 rounded-xl transition-colors shadow-sm
-             text-blue-600 bg-blue-50 hover:bg-blue-100
-             dark:text-blue-400 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 dark:border dark:border-blue-500/10"
-        >
-          Tout marquer comme vu
-        </button>
+
+        {/* Radix UI Dropdown Menu */}
+        <DropdownMenu.Root>
+          <DropdownMenu.Trigger asChild>
+            <button
+              className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+              aria-label="Actions"
+            >
+              <SettingsIcon size={20} className="text-slate-600 dark:text-slate-400" />
+            </button>
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Content
+            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg min-w-[200px] z-50"
+            align="end"
+            sideOffset={8}
+          >
+            <DropdownMenu.Item
+              onSelect={() => setVisitedIds(new Set())}
+              className="px-4 py-2 text-sm cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 outline-none transition-colors"
+            >
+              ✓ Marquer tout comme vu
+            </DropdownMenu.Item>
+            <DropdownMenu.Separator className="h-px bg-slate-200 dark:bg-slate-800 mx-0" />
+            <DropdownMenu.Item
+              onSelect={() => setIsFilterDialogOpen(true)}
+              className="px-4 py-2 text-sm cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 outline-none transition-colors"
+            >
+              🗑️ Filtrer offres &gt; N jours
+            </DropdownMenu.Item>
+          </DropdownMenu.Content>
+        </DropdownMenu.Root>
       </div>
 
       {/* Filter Bar */}
@@ -419,6 +487,11 @@ export default function InboxView({
       )}
 
       {/* Modals */}
+      <FilterOldJobsDialog
+        isOpen={isFilterDialogOpen}
+        onClose={() => setIsFilterDialogOpen(false)}
+        onSubmit={handleCreateFilterRule}
+      />
       <BlacklistModal
         isOpen={isBlacklistModalOpen}
         onClose={() => setIsBlacklistModalOpen(false)}

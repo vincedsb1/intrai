@@ -1,5 +1,5 @@
 import { withMongo } from "@/lib/mongo";
-import { Job, JobStatus, JobCategory, GetJobsResult, Settings } from "@/lib/types";
+import { Job, JobStatus, JobCategory, GetJobsResult, Settings, SmartRule } from "@/lib/types";
 import { getSettings, updateSettings } from "./settings.service";
 import { evaluateRule } from "./rules.engine";
 import { ObjectId } from "mongodb";
@@ -281,6 +281,69 @@ export async function ingestJob(jobData: Partial<Job>) {
 
     const result = await db.collection(JOBS_COLLECTION).insertOne(newJob);
     return { ...newJob, id: result.insertedId.toString() };
+  });
+}
+
+// Count jobs matching olderThan rule (read-only, for estimation in dialog)
+export async function countJobsMatchingOlderThan(days: number): Promise<number> {
+  return await withMongo(async (db) => {
+    const jobs = await db
+      .collection(JOBS_COLLECTION)
+      .find({
+        status: "INBOX",
+        category: { $ne: "FILTERED" },
+      })
+      .toArray();
+
+    const tempRule: SmartRule = {
+      id: "temp",
+      name: "temp",
+      enabled: true,
+      conditions: [
+        {
+          id: "temp",
+          field: "createdAt",
+          operator: "olderThan",
+          value: days,
+        },
+      ],
+      action: "FILTER",
+    };
+
+    const jobsMatching = jobs.filter((job) => evaluateRule(job as unknown as Job, tempRule));
+    return jobsMatching.length;
+  });
+}
+
+// Evaluate and filter jobs matching a SmartRule (createdAt/olderThan)
+// Returns count of jobs marked as FILTERED
+export async function evaluateAndFilterOldJobs(newRule: SmartRule): Promise<number> {
+  return await withMongo(async (db) => {
+    const jobs = await db
+      .collection(JOBS_COLLECTION)
+      .find({
+        status: "INBOX",
+        category: { $ne: "FILTERED" },
+      })
+      .toArray();
+
+    const jobsToFilter = jobs.filter((job) => evaluateRule(job as unknown as Job, newRule));
+
+    if (jobsToFilter.length > 0) {
+      const idsToFilter = jobsToFilter.map((j) => new ObjectId(j._id));
+      await db.collection(JOBS_COLLECTION).updateMany(
+        { _id: { $in: idsToFilter } },
+        {
+          $set: {
+            category: "FILTERED",
+            matchedKeyword: newRule.name,
+            updatedAt: new Date(),
+          },
+        }
+      );
+    }
+
+    return jobsToFilter.length;
   });
 }
 
