@@ -2,8 +2,17 @@
 
 import React, { useState } from "react";
 import { Plus, Edit2, Trash2, Power, Zap } from "lucide-react";
-import { SmartRule } from "@/lib/types";
+import { SmartRule, RuleCondition } from "@/lib/types";
 import RuleEditorModal from "./RuleEditorModal";
+
+const formatConditionDisplay = (condition: RuleCondition): string => {
+  if (condition.operator === "olderThan") {
+    return `posté il y a plus de ${condition.value} jours`;
+  }
+  return `[${condition.field}] ${condition.operator} "${
+    Array.isArray(condition.value) ? condition.value.join(", ") : condition.value
+  }"`;
+};
 
 interface SettingsRulesProps {
   rules: SmartRule[];
@@ -100,10 +109,8 @@ export default function SettingsRules({ rules, onUpdateRules }: SettingsRulesPro
                           {i === 0 ? "SI" : "ET"}
                         </span>
                         <span className="font-medium text-slate-700 dark:text-slate-300">
-                          [{c.field}]
+                          {formatConditionDisplay(c)}
                         </span>
-                        <span className="italic">{c.operator}</span>
-                        <span className="font-bold">"{Array.isArray(c.value) ? c.value.join(", ") : c.value}"</span>
                       </div>
                     ))}
                     <div className="flex gap-1 pt-1 text-red-600 dark:text-red-400">

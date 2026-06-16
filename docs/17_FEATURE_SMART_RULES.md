@@ -129,3 +129,150 @@ Dans la fonction `ingestJob` :
 Ce système est "future-proof".
 - Besoin de filtrer sur le salaire ? -> Ajouter `salary` dans `RuleField` et des opérateurs numériques (`>`, `<`).
 - Besoin de taguer automatiquement ? -> Ajouter `action: "TAG"` dans `SmartRule`.
+
+## 7. Support des Champs Temporels (v1.1)
+
+### 7.1 Nouvelle capacité
+Règles supportent désormais la **date de création** des offres. Voir `/docs/specs/2026-06-16__smart-rules__createdAt-date-filter/SPEC.md` pour le détail complet.
+
+**Exemple** : "Filtrer les offres publiées il y a plus de 7 jours"
+
+### 7.2 Implémentation (v1.1)
+- Nouveau field : `"createdAt"` (Date MongoDB, préexistant)
+- Opérateur : `"olderThan"` (inclusif, valeur en jours)
+- Architecture : Calcul côté serveur (UTC), aucune migration DB requise
+- Tests : Unit tests Vitest complets (7 tests)
+
+### 7.3 Détails techniques
+- Calcul d'âge : `Math.ceil((now - createdAt) / (1000*60*60*24))`
+- Timezone : UTC (cohérent avec MongoDB)
+- Opérateur : `"olderThan"` = offres créées il y a >= N jours
+- Opérateur futur : `"newerThan"` (offres récentes) — architecture ready
+
+### 7.4 UX
+- Modal : Field "Créé il y a...", input numérique (jours)
+- Display : "posté il y a plus de 7 jours"
+
+## 8. Bulk Actions Toolbar (v1.2)
+
+### 8.1 Présentation
+La page `/inbox` intègre une **barre d'actions groupées** (Toolbar) permettant à l'utilisateur d'exécuter des opérations batch rapidement. Accès via un **menu déroulant (Dropdown)** situé en haut à droite.
+
+### 8.2 Actions disponibles
+1. **Marquer tout comme vu** (existant)
+   - Historique : Bouton texte → Migré vers Dropdown
+   - Comportement : Immédiat, pas de dialogue
+
+2. **Filtrer les offres > N jours** (NOUVEAU)
+   - Icône : ⚙️ (Settings/Wrench)
+   - UX : Dialogue en 2 étapes
+   - Workflow : Input jours → Confirmation → Création SmartRule automatique
+
+### 8.3 Composants UI
+- **InboxView.tsx** : Dropdown Radix UI @radix-ui/react-dropdown-menu
+  - Trigger : Icône ⚙️ (lucide-react)
+  - Menu items : Actions disponibles
+  
+- **FilterOldJobsDialog.tsx** (NOUVEAU)
+  - Formulaire 2 étapes
+  - Étape 1 : Input numérique (1-365 jours)
+  - Étape 2 : Confirmation avec comptage réel des offres à filtrer
+
+### 8.4 Flux technique détaillé
+
+**Étape 1 — Saisie**
+```
+Input: nombre de jours (ex: 30)
+Validation: 1 ≤ n ≤ 365
+API Call: GET /api/jobs?status=INBOX&filterOlderThan=30
+└─> Retour: { items: [], total: 12 }
+```
+
+**Étape 2 — Confirmation**
+```
+Display: "12 offres de plus de 30 jours seront filtrées"
+Button "Filtrer" → Créer SmartRule + onSubmit()
+```
+
+**Étape 3 — Création de la règle (InboxView.handleCreateFilterRule)**
+```
+1. GET /api/settings (récupérer règles existantes)
+2. Créer SmartRule:
+   {
+     id: crypto.randomUUID(),
+     name: "Auto: 30 jours",
+     enabled: true,
+     conditions: [
+       {
+         id: crypto.randomUUID(),
+         field: "createdAt",
+         operator: "olderThan",
+         value: 30
+       }
+     ],
+     action: "FILTER"
+   }
+3. PATCH /api/settings avec rules: [...oldRules, newRule]
+   └─> Réponse: { settings, filteredCount: 12 }
+4. Toast: "12 offres filtrées (> 30 jours)"
+5. router.refresh() → Mise à jour Inbox
+```
+
+### 8.5 API Contracts
+
+**GET /api/jobs?filterOlderThan=N**
+```
+Endpoint: GET /api/jobs?status=INBOX&filterOlderThan=14
+Response:
+{
+  "items": [],
+  "total": 8
+}
+Description: Retour d'estimation pour le dialogue (lecture seule, pas de modification DB)
+```
+
+**PATCH /api/settings (nouveau champ `filteredCount`)**
+```
+Request:
+{
+  "rules": [
+    { id, name, enabled, conditions, action }
+  ]
+}
+
+Response:
+{
+  "settings": { ... },
+  "filteredCount": 12  // Nombre de jobs filtrés par la nouvelle règle
+}
+Description: Applique la règle aux offres existantes et retourne le count
+```
+
+### 8.6 Stockage & Durée
+
+- **Stockage** : MongoDB, collection `settings.rules[]`
+- **Atomicité** : Opérateur MongoDB `$push` pour éviter les pertes concurrentes
+- **Durée** : Règle persiste jusqu'à suppression manuelle
+- **Comportement** : Les offres filtrées disparaissent immédiatement de l'Inbox
+
+### 8.7 Tests
+
+- **Unit Tests** : `components/__tests__/FilterOldJobsDialog.test.tsx` (10 tests)
+  - Validation input (1-365)
+  - Étapes du dialogue
+  - API calls
+  - Error handling
+
+- **Integration Tests** : `__tests__/inbox-filter-integration.test.ts` (21 tests)
+  - Contrats API (GET /api/jobs?filterOlderThan, PATCH /api/settings)
+  - Format SmartRule
+  - Flux complet (dialog → API → refresh)
+  - Backward compatibility
+  - Edge cases
+
+### 8.8 Backward Compatibility
+
+- ✅ Endpoint GET /api/jobs conserve contrat existant
+- ✅ PATCH /api/settings retourne `filteredCount: 0` si pas de nouvelle règle
+- ✅ "Marquer tout comme vu" fonctionne identiquement
+- ✅ Règles existantes ne sont pas modifiées lors de l'ajout d'une nouvelle

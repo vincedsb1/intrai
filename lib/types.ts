@@ -50,20 +50,21 @@ export interface Job {
   aiAnalysis?: AIAnalysis | null;
 }
 
-export type RuleField = "title" | "company" | "location" | "workMode" | "description";
-export type RuleOperator = 
+export type RuleField = "title" | "company" | "location" | "workMode" | "description" | "createdAt";
+export type RuleOperator =
   | "equals"       // Strictement égal
   | "not_equals"   // Différent de
   | "contains"     // Contient (case insensitive)
   | "not_contains" // Ne contient pas
   | "in"           // Est dans la liste (pour enums)
-  | "not_in";      // N'est pas dans la liste
+  | "not_in"       // N'est pas dans la liste
+  | "olderThan";   // Posté il y a N jours ou plus (createdAt)
 
 export interface RuleCondition {
   id: string; // uuid pour gestion UI (keys)
   field: RuleField;
   operator: RuleOperator;
-  value: string | string[]; // string pour texte, string[] pour multi-select
+  value: string | string[] | number; // string pour texte, string[] pour multi-select, number pour createdAt (jours)
 }
 
 export interface SmartRule {
@@ -80,4 +81,9 @@ export interface Settings {
   rules: SmartRule[];
   deduplicateCrossRegion?: boolean;
   updatedAt: Date | string;
+}
+
+export interface GetJobsResult {
+  items: Job[];
+  total: number;
 }

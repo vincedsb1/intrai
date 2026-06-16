@@ -1,5 +1,21 @@
 import { Job, SmartRule, RuleCondition, RuleOperator } from "@/lib/types";
 
+const INVALID_AGE = -1; // Signifie createdAt invalide/null
+
+/**
+ * Calcule l'âge d'une offre en jours (UTC), arrondi ceil (inclusif).
+ * Exs: Créé à 23h59 aujourd'hui → 0 jours
+ *      Créé hier → 1 jour
+ * @returns Nombre entier >= 0, ou INVALID_AGE (-1) si invalide
+ */
+function calculateAgeInDays(createdAt: Date | string | null | undefined): number {
+  if (!createdAt) return INVALID_AGE;
+  const created = typeof createdAt === "string" ? new Date(createdAt) : createdAt;
+  const now = new Date();
+  const diffMs = now.getTime() - created.getTime();
+  return Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+}
+
 /**
  * Normalise une chaîne pour comparaison (trim, lowercase, accents)
  */
@@ -16,11 +32,18 @@ function normalize(str: string | null | undefined): string {
  * Compare une valeur (du job) avec une cible (de la règle) selon l'opérateur
  */
 function checkCondition(
-  jobValue: string | null | undefined,
-  targetValue: string | string[],
+  jobValue: string | null | undefined | Date,
+  targetValue: string | string[] | number,
   operator: RuleOperator
 ): boolean {
-  const normalizedJobValue = normalize(jobValue);
+  // Cas spécial: opérateurs temporels
+  if (operator === "olderThan") {
+    if (!jobValue || typeof targetValue !== "number") return false;
+    const ageInDays = calculateAgeInDays(jobValue as Date | string);
+    return ageInDays >= targetValue; // Inclusif (>=)
+  }
+
+  const normalizedJobValue = normalize(jobValue as string | null | undefined);
 
   // Cas des opérateurs de liste (in, not_in)
   if (Array.isArray(targetValue)) {
@@ -58,7 +81,7 @@ function checkCondition(
 /**
  * Extrait la valeur du champ ciblé dans le job
  */
-function getJobValue(job: Partial<Job>, field: RuleCondition["field"]): string | null | undefined {
+function getJobValue(job: Partial<Job>, field: RuleCondition["field"]): string | null | undefined | Date {
   switch (field) {
     case "title":
       return job.title;
@@ -70,6 +93,8 @@ function getJobValue(job: Partial<Job>, field: RuleCondition["field"]): string |
       return job.workMode;
     case "description":
       return job.rawString; // On utilise le rawString comme proxy de description pour l'instant
+    case "createdAt":
+      return job.createdAt;
     default:
       return null;
   }

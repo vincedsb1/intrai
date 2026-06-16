@@ -1,0 +1,35 @@
+{
+  "slug": "2026-06-16__inbox__bulk-actions-toolbar",
+  "paths": {
+    "spec": "docs/specs/2026-06-16__inbox__bulk-actions-toolbar/SPEC.md",
+    "intake": "docs/specs/2026-06-16__inbox__bulk-actions-toolbar/INTAKE.md",
+    "audit": "docs/specs/2026-06-16__inbox__bulk-actions-toolbar/AUDIT.md",
+    "application_report": "docs/specs/2026-06-16__inbox__bulk-actions-toolbar/APPLICATION-REPORT.md",
+    "challenge": "docs/specs/2026-06-16__inbox__bulk-actions-toolbar/CHALLENGE.md",
+    "retro": "docs/specs/2026-06-16__inbox__bulk-actions-toolbar/RETRO.md"
+  },
+  "solution_strategy": "HYBRID",
+  "version": 3,
+  "last_step": "implement",
+  "last_status": "IMPLEMENTED",
+  "audited": true,
+  "audit_date": "2026-06-16",
+  "challenged": true,
+  "challenge_date": "2026-06-16",
+  "revision_date": "2026-06-16",
+  "challenge_findings_applied": {
+    "accepted": 3,
+    "partial": 4,
+    "rejected": 5,
+    "total": 12
+  },
+  "blockers_resolved": 3,
+  "non_blockers_addressed": 6,
+  "pre_impl_actions": [
+    "Verify PATCH /api/settings response contract (grep codebase)",
+    "Implement MongoDB $push atomic operator"
+  ],
+  "estimated_effort_hours": "8-12",
+  "estimated_risk": "low",
+  "rollout_strategy": "direct_no_flag"
+}
