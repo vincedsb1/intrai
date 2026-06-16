@@ -1,49 +1,127 @@
 import { withMongo } from "@/lib/mongo";
-import { Job, JobStatus, JobCategory, Settings } from "@/lib/types";
+import { Job, JobStatus, JobCategory, GetJobsResult, Settings } from "@/lib/types";
 import { getSettings, updateSettings } from "./settings.service";
 import { evaluateRule } from "./rules.engine";
 import { ObjectId } from "mongodb";
+import { INBOX_PAGE_SIZE } from "@/lib/constants";
 
 const JOBS_COLLECTION = "jobs";
 
-export async function getJobs(filters: { status?: JobStatus; category?: JobCategory }) {
+export async function getJobs(filters: {
+  status?: JobStatus;
+  category?: JobCategory;
+  workMode?: string;
+  isEasyApply?: boolean;
+  country?: string;
+  q?: string;
+  page?: number;
+  limit?: number;
+}): Promise<GetJobsResult> {
   const start = Date.now();
-  console.log(`[JOBS] 🟡 Fetching jobs with filters: ${JSON.stringify(filters)}`);
+
+  const rawPage = filters.page ?? 1;
+  const page = isNaN(rawPage) || rawPage < 1 ? 1 : rawPage;
+  const limit = filters.limit ?? INBOX_PAGE_SIZE;
+  const skip = (page - 1) * limit;
+
+  console.log(
+    `[JOBS] 🟡 Fetching jobs page=${page} limit=${limit} filters: ${JSON.stringify({
+      ...filters,
+      q: filters.q ? "[redacted]" : undefined,
+      page: undefined,
+      limit: undefined,
+    })}`
+  );
 
   try {
-    const items = await withMongo(async (db) => {
-      const query: any = {};
+    const { items, total } = await withMongo(async (db) => {
+      const query: Record<string, unknown> = {};
       if (filters.status) query.status = filters.status;
-      if (filters.category) query.category = filters.category;
+      if (filters.status === "INBOX" && !filters.category) {
+        query.category = { $ne: "FILTERED" };
+      } else if (filters.category) {
+        query.category = filters.category;
+      }
+      if (filters.workMode && filters.workMode !== "all") query.workMode = filters.workMode;
+      if (filters.isEasyApply === true) query.isEasyApply = true;
+      if (filters.country && filters.country !== "all") query.country = filters.country;
+      if (filters.q?.trim()) {
+        const trimmed = filters.q.trim().slice(0, 200);
+        const escaped = trimmed.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const regex = new RegExp(escaped, "i");
+        query.$or = [{ title: regex }, { company: regex }];
+      }
 
-      return db
-        .collection(JOBS_COLLECTION)
-        .find(query)
-        .sort({ createdAt: -1 })
-        .toArray();
+      const [rawItems, total] = await Promise.all([
+        db
+          .collection(JOBS_COLLECTION)
+          .find(query)
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(limit)
+          .toArray(),
+        db.collection(JOBS_COLLECTION).countDocuments(query),
+      ]);
+
+      const items = rawItems.map((item) => {
+        const { _id, createdAt, visitedAt, updatedAt, aiAnalysis, ...rest } = item;
+        return {
+          ...rest,
+          id: _id.toString(),
+          createdAt: createdAt ? new Date(createdAt).toISOString() : null,
+          updatedAt: updatedAt ? new Date(updatedAt).toISOString() : null,
+          visitedAt: visitedAt ? new Date(visitedAt).toISOString() : null,
+          aiAnalysis: aiAnalysis
+            ? {
+                ...aiAnalysis,
+                createdAt: aiAnalysis.createdAt
+                  ? new Date(aiAnalysis.createdAt).toISOString()
+                  : null,
+              }
+            : null,
+        };
+      }) as unknown as Job[];
+
+      return { items, total };
     });
-    
-    const duration = Date.now() - start;
-    console.log(`[JOBS] 🟢 Fetched ${items.length} jobs in ${duration}ms`);
 
-    return items.map((item) => {
-    const { _id, createdAt, visitedAt, updatedAt, aiAnalysis, ...rest } = item;
-    return {
-      ...rest,
-      id: _id.toString(),
-      createdAt: createdAt ? new Date(createdAt).toISOString() : null,
-      updatedAt: updatedAt ? new Date(updatedAt).toISOString() : null,
-      visitedAt: visitedAt ? new Date(visitedAt).toISOString() : null,
-      aiAnalysis: aiAnalysis ? {
-        ...aiAnalysis,
-        createdAt: aiAnalysis.createdAt ? new Date(aiAnalysis.createdAt).toISOString() : null
-      } : null
-    };
-  }) as unknown as Job[];
+    const duration = Date.now() - start;
+    console.log(`[JOBS] 🟢 Fetched ${items.length}/${total} jobs in ${duration}ms`);
+
+    return { items, total };
   } catch (error) {
     console.error("[JOBS] 🔴 Error fetching jobs:", error);
     throw error;
   }
+}
+
+export async function getAvailableCountries(filters: {
+  status?: JobStatus;
+  workMode?: string;
+  q?: string;
+  isEasyApply?: boolean;
+}): Promise<string[]> {
+  return await withMongo(async (db) => {
+    const query: Record<string, unknown> = {};
+    if (filters.status) query.status = filters.status;
+    if (filters.status === "INBOX") query.category = { $ne: "FILTERED" };
+    if (filters.workMode && filters.workMode !== "all") query.workMode = filters.workMode;
+    if (filters.isEasyApply === true) query.isEasyApply = true;
+    if (filters.q?.trim()) {
+      const trimmed = filters.q.trim().slice(0, 200);
+      const escaped = trimmed.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      query.$or = [
+        { title: new RegExp(escaped, "i") },
+        { company: new RegExp(escaped, "i") },
+      ];
+    }
+    const countries = await db
+      .collection(JOBS_COLLECTION)
+      .distinct("country", query);
+    return countries
+      .filter((c): c is string => typeof c === "string" && c.length > 0)
+      .sort();
+  });
 }
 
 export async function updateJobStatus(id: string, status: JobStatus) {

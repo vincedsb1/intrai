@@ -81,3 +81,8 @@ export interface Settings {
   deduplicateCrossRegion?: boolean;
   updatedAt: Date | string;
 }
+
+export interface GetJobsResult {
+  items: Job[];
+  total: number;
+}

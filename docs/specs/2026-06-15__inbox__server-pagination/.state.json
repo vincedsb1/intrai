@@ -1,0 +1,15 @@
+{
+  "slug": "2026-06-15__inbox__server-pagination",
+  "paths": {
+    "spec": "docs/specs/2026-06-15__inbox__server-pagination/SPEC.md",
+    "audit": "docs/specs/2026-06-15__inbox__server-pagination/AUDIT.md",
+    "challenge": "docs/specs/2026-06-15__inbox__server-pagination/CHALLENGE.md",
+    "contextLock": "docs/specs/2026-06-15__inbox__server-pagination/CONTEXT.lock.md",
+    "retro": "docs/specs/2026-06-15__inbox__server-pagination/RETRO.md",
+    "applicationReport": "docs/specs/2026-06-15__inbox__server-pagination/APPLICATION-REPORT-v4.md"
+  },
+  "solution_strategy": "HYBRID",
+  "version": 4,
+  "last_step": "implement",
+  "last_status": "IMPLEMENTED"
+}

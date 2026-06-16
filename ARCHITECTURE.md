@@ -42,8 +42,8 @@ Une seule liste Inbox (flux unique), et des vues secondaires : Traitées (Saved/
 - status: INBOX | SAVED | TRASH
 
 ## Contrats API (résumé)
-- GET /api/jobs?status=&category=
-- GET /api/jobs/count (Nouveau: Compteur Inbox temps réel)
+- GET /api/jobs?status=&category=&mode=&easy=&country=&q=&page=&limit= → { items: Job[], total: number }
+- GET /api/jobs/count (Compteur Inbox temps réel)
 - PATCH /api/jobs/:id (status)
 - POST /api/jobs/:id/restore
 - POST /api/jobs/:id/visit (Persistance "Vu")
@@ -51,6 +51,11 @@ Une seule liste Inbox (flux unique), et des vues secondaires : Traitées (Saved/
 - POST /api/ingest/webhook (ingestion JSON structuré)
 - POST /api/ingest/email (ingestion Email CloudMailin Multipart)
 - POST /api/ai/ban-author (AI Detective + Blacklist)
+
+### Pagination /inbox
+- Filtres (workMode, isEasyApply, country, q) et pagination (page, limit) exécutés en DB via `getJobs()`.
+- `getAvailableCountries({ status, workMode, q, isEasyApply })` retourne les pays des offres matchant les filtres actifs.
+- `INBOX_PAGE_SIZE = 20` défini dans `lib/constants.ts` — source de vérité unique.
 
 ## UI Guidelines (v2)
 - **Design**: Slate Theme (`#F1F5F9`), Glassmorphism, Ombres douces (`shadow-soft`).
@@ -69,6 +74,7 @@ Une seule liste Inbox (flux unique), et des vues secondaires : Traitées (Saved/
 - **Server -> Client**: Les pages (`/inbox`, etc.) sont des Server Components qui fetchent les données initiales.
 - **Client State**: Les vues (`InboxView`, `FilteredView`) sont des Client Components qui reçoivent ces données initiales et les stockent dans un `useState`. Cela permet des interactions optimistes (suppression instantanée).
 - **Synchronisation**: Un `useEffect` dans les vues synchronise l'état local (`jobs`) avec les `props` (`initialJobs`). Ce pattern est essentiel pour que l'interface reflète les changements après un `router.refresh()` déclenché par l'auto-refresh.
+- **Pagination /inbox**: `?page`, `?mode`, `?country`, `?q`, `?easy` dans l'URL sont la source de vérité. `InboxPage` (SC) lit les `searchParams` et passe les données paginées à `InboxView` (CC). La recherche via `DesktopHeader` reset `?page` via `window.location.pathname` + `current.delete("page")`. `useAutoRefresh` suspend le refresh automatique quand `?page > 1` (delta préservé en attente).
 
 ## Infra & Logs
 - **MongoDB**: Driver configuré en `directConnection: true` + `family: 4` + Timeouts longs (30s) pour VPS.
