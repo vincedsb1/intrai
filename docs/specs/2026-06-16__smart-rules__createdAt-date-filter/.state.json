@@ -1,0 +1,15 @@
+{
+  "slug": "2026-06-16__smart-rules__createdAt-date-filter",
+  "paths": {
+    "spec": "docs/specs/2026-06-16__smart-rules__createdAt-date-filter/SPEC.md",
+    "audit": "docs/specs/2026-06-16__smart-rules__createdAt-date-filter/AUDIT.md",
+    "challenge": "docs/specs/2026-06-16__smart-rules__createdAt-date-filter/CHALLENGE.md",
+    "contextLock": "docs/specs/2026-06-16__smart-rules__createdAt-date-filter/CONTEXT.lock.md",
+    "retro": "docs/specs/2026-06-16__smart-rules__createdAt-date-filter/RETRO.md"
+  },
+  "solution_strategy": "PATCH",
+  "version": 2,
+  "last_step": "implement",
+  "last_status": "IMPLEMENTED",
+  "created_at": "2026-06-16T00:00:00Z"
+}

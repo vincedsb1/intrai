@@ -17,9 +17,10 @@ const FIELD_OPTIONS: { value: RuleField; label: string }[] = [
   { value: "location", label: "Lieu" },
   { value: "workMode", label: "Mode de travail" },
   { value: "description", label: "Description brute" },
+  { value: "createdAt", label: "Créé il y a..." },
 ];
 
-const OPERATOR_OPTIONS: { value: RuleOperator; label: string }[] = [
+const OPERATOR_OPTIONS_STRING: { value: RuleOperator; label: string }[] = [
   { value: "contains", label: "Contient" },
   { value: "not_contains", label: "Ne contient pas" },
   { value: "equals", label: "Est égal à" },
@@ -27,6 +28,17 @@ const OPERATOR_OPTIONS: { value: RuleOperator; label: string }[] = [
   { value: "in", label: "Est l'un de" },
   { value: "not_in", label: "N'est pas l'un de" },
 ];
+
+const OPERATOR_OPTIONS_DATE: { value: RuleOperator; label: string }[] = [
+  { value: "olderThan", label: "Posté il y a plus de (jours)" },
+];
+
+const getOperatorOptionsForField = (field: RuleField) => {
+  if (field === "createdAt") {
+    return OPERATOR_OPTIONS_DATE;
+  }
+  return OPERATOR_OPTIONS_STRING;
+};
 
 export default function RuleEditorModal({
   isOpen,
@@ -75,7 +87,7 @@ export default function RuleEditorModal({
   const updateCondition = (
     id: string,
     key: keyof RuleCondition,
-    value: string | string[]
+    value: string | string[] | number
   ) => {
     setConditions(
       conditions.map((c) => (c.id === id ? { ...c, [key]: value } : c))
@@ -165,7 +177,7 @@ export default function RuleEditorModal({
                       }
                       className="w-1/4 px-2 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm dark:text-slate-100"
                     >
-                      {OPERATOR_OPTIONS.map((opt) => (
+                      {getOperatorOptionsForField(condition.field).map((opt) => (
                         <option key={opt.value} value={opt.value}>
                           {opt.label}
                         </option>
@@ -174,7 +186,19 @@ export default function RuleEditorModal({
 
                     {/* Valeur (Dynamique) */}
                     <div className="flex-1">
-                      {condition.field === "workMode" ? (
+                      {condition.field === "createdAt" ? (
+                        <input
+                          type="number"
+                          inputMode="numeric"
+                          value={condition.value as number || ""}
+                          onChange={(e) =>
+                            updateCondition(condition.id, "value", parseInt(e.target.value) || 0)
+                          }
+                          placeholder="Ex: 7"
+                          min="0"
+                          className="w-full px-2 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm dark:text-slate-100"
+                        />
+                      ) : condition.field === "workMode" ? (
                         <select
                           value={condition.value as string}
                           onChange={(e) =>

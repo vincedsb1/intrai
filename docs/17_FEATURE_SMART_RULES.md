@@ -129,3 +129,26 @@ Dans la fonction `ingestJob` :
 Ce système est "future-proof".
 - Besoin de filtrer sur le salaire ? -> Ajouter `salary` dans `RuleField` et des opérateurs numériques (`>`, `<`).
 - Besoin de taguer automatiquement ? -> Ajouter `action: "TAG"` dans `SmartRule`.
+
+## 7. Support des Champs Temporels (v1.1)
+
+### 7.1 Nouvelle capacité
+Règles supportent désormais la **date de création** des offres. Voir `/docs/specs/2026-06-16__smart-rules__createdAt-date-filter/SPEC.md` pour le détail complet.
+
+**Exemple** : "Filtrer les offres publiées il y a plus de 7 jours"
+
+### 7.2 Implémentation (v1.1)
+- Nouveau field : `"createdAt"` (Date MongoDB, préexistant)
+- Opérateur : `"olderThan"` (inclusif, valeur en jours)
+- Architecture : Calcul côté serveur (UTC), aucune migration DB requise
+- Tests : Unit tests Vitest complets (7 tests)
+
+### 7.3 Détails techniques
+- Calcul d'âge : `Math.ceil((now - createdAt) / (1000*60*60*24))`
+- Timezone : UTC (cohérent avec MongoDB)
+- Opérateur : `"olderThan"` = offres créées il y a >= N jours
+- Opérateur futur : `"newerThan"` (offres récentes) — architecture ready
+
+### 7.4 UX
+- Modal : Field "Créé il y a...", input numérique (jours)
+- Display : "posté il y a plus de 7 jours"

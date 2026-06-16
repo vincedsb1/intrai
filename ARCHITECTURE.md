@@ -76,6 +76,19 @@ Une seule liste Inbox (flux unique), et des vues secondaires : Traitées (Saved/
 - **Synchronisation**: Un `useEffect` dans les vues synchronise l'état local (`jobs`) avec les `props` (`initialJobs`). Ce pattern est essentiel pour que l'interface reflète les changements après un `router.refresh()` déclenché par l'auto-refresh.
 - **Pagination /inbox**: `?page`, `?mode`, `?country`, `?q`, `?easy` dans l'URL sont la source de vérité. `InboxPage` (SC) lit les `searchParams` et passe les données paginées à `InboxView` (CC). La recherche via `DesktopHeader` reset `?page` via `window.location.pathname` + `current.delete("page")`. `useAutoRefresh` suspend le refresh automatique quand `?page > 1` (delta préservé en attente).
 
+### Smart Rules — Field Types
+Règles intelligentes supportent deux catégories de fields :
+
+1. **String fields** : title, company, location, workMode, description
+   - Opérateurs : contains, not_contains, equals, not_equals, in, not_in
+   - Normalisation : lowercase, trim, accents
+   
+2. **Temporal/Numeric fields** : createdAt (v1.1+), salary (future)
+   - Opérateurs temporels : olderThan, newerThan (date, v1.1+)
+   - Opérateurs numériques : greaterThan, lessThan (future, reserved)
+   - Evaluation : server-side uniquement (dans ingestJob())
+   - UTC timezone pour cohérence DB
+
 ## Infra & Logs
 - **MongoDB**: Driver configuré en `directConnection: true` + `family: 4` + Timeouts longs (30s) pour VPS.
 - **VPS**: Nécessite `net.ipv4.tcp_keepalive_time = 300` pour compatibilité Serverless Vercel.
