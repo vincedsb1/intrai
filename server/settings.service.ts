@@ -49,7 +49,7 @@ export async function addSmartRule(rule: SmartRule): Promise<Settings> {
     await db.collection(SETTINGS_COLLECTION).updateOne(
       {},
       {
-        $push: { rules: rule },
+        $push: { rules: rule } as any,
         $set: { updatedAt: new Date() },
       },
       { upsert: true }
