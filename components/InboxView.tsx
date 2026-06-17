@@ -2,8 +2,7 @@
 
 import React, { useState, useEffect, useTransition, useOptimistic } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { Inbox, Settings as SettingsIcon } from "lucide-react";
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
+import { Inbox } from "lucide-react";
 import JobCard from "./JobCard";
 import FilterOldJobsDialog from "./FilterOldJobsDialog";
 import BlacklistModal from "./BlacklistModal";
@@ -56,6 +55,8 @@ export default function InboxView({
     (state, newFilters: Partial<typeof currentFilters>) => ({ ...state, ...newFilters })
   );
 
+  const [optimisticPage, setOptimisticPage] = useOptimistic(currentPage);
+
   const updateUrlParams = (key: string, value: string | null) => {
     const current = new URLSearchParams(Array.from(searchParams.entries()));
     current.delete("page");
@@ -98,15 +99,18 @@ export default function InboxView({
   };
 
   const handlePageChange = (page: number) => {
-    const current = new URLSearchParams(Array.from(searchParams.entries()));
-    if (page === 1) {
-      current.delete("page");
-    } else {
-      current.set("page", String(page));
-    }
-    const search = current.toString();
-    const query = search ? `?${search}` : "";
-    router.push(`${pathname}${query}`, { scroll: false });
+    startTransition(() => {
+      setOptimisticPage(page);
+      const current = new URLSearchParams(Array.from(searchParams.entries()));
+      if (page === 1) {
+        current.delete("page");
+      } else {
+        current.set("page", String(page));
+      }
+      const search = current.toString();
+      const query = search ? `?${search}` : "";
+      router.push(`${pathname}${query}`, { scroll: false });
+    });
   };
 
   const isAnyFilterActive =
@@ -336,46 +340,13 @@ export default function InboxView({
   return (
     <div className="pb-64">
       {/* Page Header (Desktop) */}
-      <div className="hidden md:flex items-end justify-between mb-8">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
-            Opportunités
-          </h2>
-          <p className="text-sm mt-2 font-medium text-slate-500 dark:text-slate-400">
-            Gérez vos nouvelles offres d&apos;emploi.
-          </p>
-        </div>
-
-        {/* Radix UI Dropdown Menu */}
-        <DropdownMenu.Root>
-          <DropdownMenu.Trigger asChild>
-            <button
-              className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-              aria-label="Actions"
-            >
-              <SettingsIcon size={20} className="text-slate-600 dark:text-slate-400" />
-            </button>
-          </DropdownMenu.Trigger>
-          <DropdownMenu.Content
-            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg min-w-[200px] z-50"
-            align="end"
-            sideOffset={8}
-          >
-            <DropdownMenu.Item
-              onSelect={() => setVisitedIds(new Set())}
-              className="px-4 py-2 text-sm cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 outline-none transition-colors"
-            >
-              ✓ Marquer tout comme vu
-            </DropdownMenu.Item>
-            <DropdownMenu.Separator className="h-px bg-slate-200 dark:bg-slate-800 mx-0" />
-            <DropdownMenu.Item
-              onSelect={() => setIsFilterDialogOpen(true)}
-              className="px-4 py-2 text-sm cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 outline-none transition-colors"
-            >
-              🗑️ Filtrer offres &gt; N jours
-            </DropdownMenu.Item>
-          </DropdownMenu.Content>
-        </DropdownMenu.Root>
+      <div className="hidden md:block mb-8">
+        <h2 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+          Opportunités
+        </h2>
+        <p className="text-sm mt-2 font-medium text-slate-500 dark:text-slate-400">
+          Gérez vos nouvelles offres d&apos;emploi.
+        </p>
       </div>
 
       {/* Filter Bar */}
@@ -389,6 +360,8 @@ export default function InboxView({
         availableCountries={availableCountries}
         isAnyFilterActive={isAnyFilterActive}
         onClearFilters={handleClearFilters}
+        onMarkAllAsVisited={() => setVisitedIds(new Set())}
+        onOpenFilterDialog={() => setIsFilterDialogOpen(true)}
       />
 
       {/* Empty State */}
@@ -458,9 +431,10 @@ export default function InboxView({
       {totalPages > 1 && (
         <div className="mt-10 flex justify-center">
           <Pagination
-            currentPage={currentPage}
+            currentPage={optimisticPage}
             totalPages={totalPages}
             onPageChange={handlePageChange}
+            isPending={isPending}
           />
         </div>
       )}
