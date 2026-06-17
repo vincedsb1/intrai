@@ -186,15 +186,13 @@ En fonction du scope et du risque identifiés, tu proposes une trajectoire adapt
 
 ### Recommandation proposée
 
-**Risque estimé :** faible | moyen | élevé
-
 **Décision recommandée :**
 - `[ ] /plan` - pour une approche rapide et directe
 - `[ ] workflow complet (/spec-1-intake → /spec-5-revise)` - pour un changement structurant
 - `[ ] hybride` - pour une évaluation progressive
 
 **Raison principale :**
-(Justifie en 1-2 lignes selon le contexte du feature brief, le scope et les risques identifiés)
+(Justifie en 1-2 lignes selon le contexte du feature brief et du score de risque)
 
 **Commande suggérée :**
 - Si `/plan` : `/plan <résumé court de la tâche>` dans Claude Code ou Codex

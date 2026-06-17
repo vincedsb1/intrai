@@ -6,6 +6,7 @@ interface PaginationProps {
   currentPage: number;
   totalPages: number;
   onPageChange: (page: number) => void;
+  isPending?: boolean;
 }
 
 function getPageRange(currentPage: number, totalPages: number): (number | "...")[] {
@@ -57,6 +58,7 @@ export default function Pagination({
   currentPage,
   totalPages,
   onPageChange,
+  isPending = false,
 }: PaginationProps) {
   if (totalPages <= 1) return null;
 
@@ -67,7 +69,7 @@ export default function Pagination({
       {/* Première page — masqué mobile */}
       <button
         className={`${btnNav} hidden sm:flex`}
-        disabled={currentPage === 1}
+        disabled={currentPage === 1 || isPending}
         onClick={() => onPageChange(1)}
         aria-label="Première page"
       >
@@ -77,7 +79,7 @@ export default function Pagination({
       {/* Page précédente */}
       <button
         className={btnNav}
-        disabled={currentPage === 1}
+        disabled={currentPage === 1 || isPending}
         onClick={() => onPageChange(currentPage - 1)}
         aria-label="Page précédente"
       >
@@ -95,6 +97,7 @@ export default function Pagination({
             <button
               key={item}
               onClick={() => onPageChange(item)}
+              disabled={isPending}
               className={item === currentPage ? btnActive : btnBase}
               aria-label={`Aller à la page ${item}`}
               aria-current={item === currentPage ? "page" : undefined}
@@ -116,7 +119,7 @@ export default function Pagination({
       {/* Page suivante */}
       <button
         className={btnNav}
-        disabled={currentPage === totalPages}
+        disabled={currentPage === totalPages || isPending}
         onClick={() => onPageChange(currentPage + 1)}
         aria-label="Page suivante"
       >
@@ -126,7 +129,7 @@ export default function Pagination({
       {/* Dernière page — masqué mobile */}
       <button
         className={`${btnNav} hidden sm:flex`}
-        disabled={currentPage === totalPages}
+        disabled={currentPage === totalPages || isPending}
         onClick={() => onPageChange(totalPages)}
         aria-label="Dernière page"
       >

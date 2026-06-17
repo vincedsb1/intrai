@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { parseEmail } from "@/server/email-parser.service";
 import { ingestJob } from "@/server/jobs.service";
 import { resolveCompanyAnalyses, resolveLocationAnalyses } from "@/server/ai.service";
+import { getSettings } from "@/server/settings.service";
 import { getDb } from "@/lib/mongo";
 import fs from "fs/promises";
 import path from "path";
@@ -59,13 +60,16 @@ export async function POST(req: Request) {
     // --- FIN DEBUG ---
 
     // 4.5 Analyse IA (Entreprises + Localisations) en parallèle
+    const settings = await getSettings();
     const uniqueCompanies = jobs.map(j => j.company);
     const uniqueLocations = jobs.map(j => j.location);
 
-    const [analysesMap, locationsMap] = await Promise.all([
-      resolveCompanyAnalyses(uniqueCompanies),
-      resolveLocationAnalyses(uniqueLocations)
-    ]);
+    const [analysesMap, locationsMap] = settings.aiAnalysisEnabled
+      ? await Promise.all([
+          resolveCompanyAnalyses(uniqueCompanies),
+          resolveLocationAnalyses(uniqueLocations)
+        ])
+      : [new Map(), new Map()];
 
     // 5. Boucle d'ingestion
     const ingestedIds = [];

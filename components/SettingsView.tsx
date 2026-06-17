@@ -11,6 +11,7 @@ interface SettingsViewProps {
     blacklist: string[];
     rules: SmartRule[];
     deduplicateCrossRegion?: boolean;
+    aiAnalysisEnabled?: boolean;
   };
 }
 
@@ -19,6 +20,7 @@ export default function SettingsView({ initialData }: SettingsViewProps) {
   const [blacklist, setBlacklist] = useState(initialData.blacklist);
   const [rules, setRules] = useState(initialData.rules);
   const [deduplicateCrossRegion, setDeduplicateCrossRegion] = useState(initialData.deduplicateCrossRegion || false);
+  const [aiAnalysisEnabled, setAiAnalysisEnabled] = useState(initialData.aiAnalysisEnabled ?? true);
   const [newBlacklistTerm, setNewBlacklistTerm] = useState("");
   const [newWhitelistTerm, setNewWhitelistTerm] = useState("");
 
@@ -26,7 +28,8 @@ export default function SettingsView({ initialData }: SettingsViewProps) {
     updatedWhitelist: string[],
     updatedBlacklist: string[],
     updatedRules: SmartRule[],
-    updatedDeduplicateCrossRegion: boolean
+    updatedDeduplicateCrossRegion: boolean,
+    updatedAiAnalysisEnabled: boolean
   ) => {
     try {
       await fetch("/api/settings", {
@@ -37,6 +40,7 @@ export default function SettingsView({ initialData }: SettingsViewProps) {
           blacklist: updatedBlacklist,
           rules: updatedRules,
           deduplicateCrossRegion: updatedDeduplicateCrossRegion,
+          aiAnalysisEnabled: updatedAiAnalysisEnabled,
         }),
       });
     } catch (error) {
@@ -47,12 +51,18 @@ export default function SettingsView({ initialData }: SettingsViewProps) {
   const toggleDeduplicateCrossRegion = () => {
     const newValue = !deduplicateCrossRegion;
     setDeduplicateCrossRegion(newValue);
-    saveSettings(whitelist, blacklist, rules, newValue);
+    saveSettings(whitelist, blacklist, rules, newValue, aiAnalysisEnabled);
+  };
+
+  const toggleAiAnalysisEnabled = () => {
+    const newValue = !aiAnalysisEnabled;
+    setAiAnalysisEnabled(newValue);
+    saveSettings(whitelist, blacklist, rules, deduplicateCrossRegion, newValue);
   };
 
   const updateRules = (updatedRules: SmartRule[]) => {
     setRules(updatedRules);
-    saveSettings(whitelist, blacklist, updatedRules, deduplicateCrossRegion);
+    saveSettings(whitelist, blacklist, updatedRules, deduplicateCrossRegion, aiAnalysisEnabled);
   };
 
   const addWhitelist = () => {
@@ -60,14 +70,14 @@ export default function SettingsView({ initialData }: SettingsViewProps) {
       const newList = [...whitelist, newWhitelistTerm.trim()];
       setWhitelist(newList);
       setNewWhitelistTerm("");
-      saveSettings(newList, blacklist, rules, deduplicateCrossRegion);
+      saveSettings(newList, blacklist, rules, deduplicateCrossRegion, aiAnalysisEnabled);
     }
   };
 
   const removeWhitelist = (term: string) => {
     const newList = whitelist.filter((t) => t !== term);
     setWhitelist(newList);
-    saveSettings(newList, blacklist, rules, deduplicateCrossRegion);
+    saveSettings(newList, blacklist, rules, deduplicateCrossRegion, aiAnalysisEnabled);
   };
 
   const addBlacklist = () => {
@@ -75,14 +85,14 @@ export default function SettingsView({ initialData }: SettingsViewProps) {
       const newList = [...blacklist, newBlacklistTerm.trim()];
       setBlacklist(newList);
       setNewBlacklistTerm("");
-      saveSettings(whitelist, newList, rules, deduplicateCrossRegion);
+      saveSettings(whitelist, newList, rules, deduplicateCrossRegion, aiAnalysisEnabled);
     }
   };
 
   const removeBlacklist = (term: string) => {
     const newList = blacklist.filter((t) => t !== term);
     setBlacklist(newList);
-    saveSettings(whitelist, newList, rules, deduplicateCrossRegion);
+    saveSettings(whitelist, newList, rules, deduplicateCrossRegion, aiAnalysisEnabled);
   };
 
   return (
@@ -108,14 +118,37 @@ export default function SettingsView({ initialData }: SettingsViewProps) {
                     <p className="text-sm text-slate-500 dark:text-slate-400">Détecter les offres identiques (Même titre/Entreprise) postées dans d'autres pays (30 jours glissants).</p>
                  </div>
             </div>
-            
-            <button 
+
+            <button
                 onClick={toggleDeduplicateCrossRegion}
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2
                 ${deduplicateCrossRegion ? 'bg-indigo-600' : 'bg-slate-200 dark:bg-slate-700'}`}
             >
                 <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform
                 ${deduplicateCrossRegion ? 'translate-x-6' : 'translate-x-1'}`} />
+            </button>
+        </div>
+      </div>
+
+      <div className="mb-6 p-6 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm animate-enter">
+        <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+                 <div className="p-3 rounded-2xl bg-violet-50 text-violet-600 dark:bg-violet-900/30 dark:text-violet-400">
+                    <Zap size={24}/>
+                 </div>
+                 <div>
+                    <h3 className="font-bold text-lg text-slate-900 dark:text-slate-100">Analyse IA des entreprises</h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Active l'analyse automatique par IA (classification Plateforme/Entreprise + pays) — consomme du crédit IA à chaque nouvelle offre.</p>
+                 </div>
+            </div>
+
+            <button
+                onClick={toggleAiAnalysisEnabled}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2
+                ${aiAnalysisEnabled ? 'bg-violet-600' : 'bg-slate-200 dark:bg-slate-700'}`}
+            >
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform
+                ${aiAnalysisEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
             </button>
         </div>
       </div>

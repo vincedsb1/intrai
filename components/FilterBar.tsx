@@ -1,7 +1,8 @@
 "use client";
 
 import React from "react";
-import { Zap, Globe, FilterX } from "lucide-react";
+import { Zap, Globe, FilterX, Settings as SettingsIcon } from "lucide-react";
+import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 
 interface FilterBarProps {
   filterWorkMode: string;
@@ -13,6 +14,8 @@ interface FilterBarProps {
   availableCountries?: string[];
   isAnyFilterActive?: boolean;
   onClearFilters?: () => void;
+  onMarkAllAsVisited?: () => void;
+  onOpenFilterDialog?: () => void;
 }
 
 const FilterPill = ({ label, icon: Icon, active, onClick }: { label: string, icon?: React.ElementType, active: boolean, onClick: () => void }) => (
@@ -38,10 +41,13 @@ export default function FilterBar({
   availableCountries = [],
   isAnyFilterActive = false,
   onClearFilters,
+  onMarkAllAsVisited,
+  onOpenFilterDialog,
 }: FilterBarProps) {
   return (
     <div className="mb-6 overflow-x-auto scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
-      <div className="flex items-center gap-3 min-w-max pb-2 md:pb-0">
+      <div className="flex items-center justify-between gap-3 pb-2 md:pb-0">
+        <div className="flex items-center gap-3 min-w-max">
         <div className="flex p-1 rounded-xl shadow-sm border
         bg-white border-slate-200
         dark:bg-slate-900 dark:border-slate-800">
@@ -102,7 +108,7 @@ export default function FilterBar({
                 <div className="w-[1px] h-8 mx-1 bg-slate-200 dark:bg-slate-800"></div>
                 <button
                     onClick={onClearFilters}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border border-transparent 
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border border-transparent
                     text-red-600 hover:bg-red-50 hover:border-red-100
                     dark:text-red-400 dark:hover:bg-red-900/20 dark:hover:border-red-900/30"
                     title="Réinitialiser tous les filtres"
@@ -112,6 +118,38 @@ export default function FilterBar({
                 </button>
             </>
         )}
+        </div>
+
+        {/* Settings Menu */}
+        <DropdownMenu.Root>
+          <DropdownMenu.Trigger asChild>
+            <button
+              className="flex items-center justify-center w-[38px] h-[38px] rounded-lg border transition-all flex-shrink-0 border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-700"
+              aria-label="Actions"
+            >
+              <SettingsIcon size={20} />
+            </button>
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Content
+            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg min-w-[200px] z-50"
+            align="end"
+            sideOffset={8}
+          >
+            <DropdownMenu.Item
+              onSelect={onMarkAllAsVisited}
+              className="px-4 py-2 text-sm cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 outline-none transition-colors"
+            >
+              ✓ Marquer tout comme vu
+            </DropdownMenu.Item>
+            <DropdownMenu.Separator className="h-px bg-slate-200 dark:bg-slate-800 mx-0" />
+            <DropdownMenu.Item
+              onSelect={onOpenFilterDialog}
+              className="px-4 py-2 text-sm cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 outline-none transition-colors"
+            >
+              🗑️ Filtrer offres &gt; N jours
+            </DropdownMenu.Item>
+          </DropdownMenu.Content>
+        </DropdownMenu.Root>
       </div>
     </div>
   );
