@@ -80,6 +80,7 @@ export interface Settings {
   blacklist: string[];
   rules: SmartRule[];
   deduplicateCrossRegion?: boolean;
+  aiAnalysisEnabled?: boolean;
   updatedAt: Date | string;
 }
 
