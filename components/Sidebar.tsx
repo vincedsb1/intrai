@@ -88,8 +88,12 @@ export default function Sidebar() {
     dark:bg-slate-950 dark:border-slate-800 dark:shadow-[4px_0_24px_rgba(0,0,0,0.1)]">
       {/* Logo */}
       <div className="flex items-center gap-3 px-2 mb-10 mt-2">
-        <div className="w-10 h-10 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-xl shadow-lg shadow-blue-500/20 flex items-center justify-center text-white font-bold text-xl">
-          i
+        <div className="w-10 h-10 rounded-xl shadow-lg shadow-blue-500/20 overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+          <img
+            src="/icon1.png"
+            alt="intrai logo"
+            className="w-full h-full object-cover"
+          />
         </div>
         <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
           intrai.
