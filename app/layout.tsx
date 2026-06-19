@@ -16,6 +16,18 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "intrai - Job Aggregator",
   description: "Single-stream job inbox for rapid decision making.",
+  manifest: "/manifest.json",
+  icons: {
+    icon: [
+      { url: "/icon1.png", type: "image/png" },
+      { url: "/icon0.svg", type: "image/svg+xml" },
+    ],
+    apple: "/apple-icon.png",
+    shortcut: "/favicon.ico",
+  },
+  other: {
+    "apple-mobile-web-app-title": "MyWebSite",
+  },
 };
 
 export default function RootLayout({
