@@ -57,6 +57,11 @@ Une seule liste Inbox (flux unique), et des vues secondaires : Traitées (Saved/
 - `getAvailableCountries({ status, workMode, q, isEasyApply })` retourne les pays des offres matchant les filtres actifs.
 - `INBOX_PAGE_SIZE = 20` défini dans `lib/constants.ts` — source de vérité unique.
 
+### Recherche globale
+- `DesktopHeader` pilote `?q=` avec debounce et reset de `?page`; la saisie locale reste prioritaire pendant le focus pour éviter les boucles input/URL.
+- `/inbox` applique `q` en DB avec les filtres paginés.
+- `/processed` lit aussi `q` et applique la recherche en DB sur les offres SAVED et TRASH.
+
 ## UI Guidelines (v2)
 - **Design**: Slate Theme (`#F1F5F9`), Glassmorphism, Ombres douces (`shadow-soft`).
 - **Layout**: Sidebar fixe (Desktop) vs Sticky Header + Horizontal Tabs (Mobile).
@@ -75,6 +80,7 @@ Une seule liste Inbox (flux unique), et des vues secondaires : Traitées (Saved/
 - **Client State**: Les vues (`InboxView`, `FilteredView`) sont des Client Components qui reçoivent ces données initiales et les stockent dans un `useState`. Cela permet des interactions optimistes (suppression instantanée).
 - **Synchronisation**: Un `useEffect` dans les vues synchronise l'état local (`jobs`) avec les `props` (`initialJobs`). Ce pattern est essentiel pour que l'interface reflète les changements après un `router.refresh()` déclenché par l'auto-refresh.
 - **Pagination /inbox**: `?page`, `?mode`, `?country`, `?q`, `?easy` dans l'URL sont la source de vérité. `InboxPage` (SC) lit les `searchParams` et passe les données paginées à `InboxView` (CC). La recherche via `DesktopHeader` reset `?page` via `window.location.pathname` + `current.delete("page")`. `useAutoRefresh` suspend le refresh automatique quand `?page > 1` (delta préservé en attente).
+- **Recherche /processed**: `ProcessedPage` lit `?q` et appelle `getJobs({ status: "SAVED" | "TRASH", q })`; `ProcessedView` resynchronise son state local quand `initialJobs` change.
 
 ### Smart Rules — Field Types
 Règles intelligentes supportent deux catégories de fields :

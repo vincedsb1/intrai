@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Bookmark, Trash2 } from "lucide-react";
 import JobCard from "./JobCard";
 import { Job, JobStatus } from "@/lib/types";
@@ -10,8 +10,12 @@ interface ProcessedViewProps {
 }
 
 export default function ProcessedView({ initialJobs }: ProcessedViewProps) {
-  const [jobs] = useState<Job[]>(initialJobs);
+  const [jobs, setJobs] = useState<Job[]>(initialJobs);
   const [subTab, setSubTab] = useState<JobStatus>("SAVED");
+
+  useEffect(() => {
+    setJobs(initialJobs);
+  }, [initialJobs]);
 
   const displayJobs = jobs.filter((j) => j.status === subTab);
 

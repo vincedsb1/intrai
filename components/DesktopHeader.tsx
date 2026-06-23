@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Search, Inbox } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useDebounce } from "@/lib/hooks/useDebounce";
@@ -9,9 +9,13 @@ import ThemeToggle from "./ThemeToggle";
 export default function DesktopHeader() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const queryFromUrl = searchParams.get("q") || "";
 
-  const [inputValue, setInputValue] = useState(searchParams.get("q") || "");
-  const debouncedSearchQuery = useDebounce(inputValue, 300);
+  const [draftValue, setDraftValue] = useState(queryFromUrl);
+  const [isSearchInputFocused, setIsSearchInputFocused] = useState(false);
+  const inputValue = isSearchInputFocused ? draftValue : queryFromUrl;
+  const debouncedSearchQuery = useDebounce(draftValue, 300);
+  const serializedSearchParams = useMemo(() => searchParams.toString(), [searchParams]);
 
   const today = new Date().toLocaleDateString("fr-FR", {
     weekday: "long",
@@ -19,30 +23,30 @@ export default function DesktopHeader() {
     month: "long",
   });
 
-  useEffect(() => {
-    const q = searchParams.get("q") || "";
-    if (q !== inputValue) {
-      setInputValue(q);
-    }
-  }, [searchParams]);
-
-  useEffect(() => {
-    const current = new URLSearchParams(Array.from(searchParams.entries()));
+  const commitSearchQuery = useCallback((nextQuery: string) => {
+    const current = new URLSearchParams(serializedSearchParams);
     const prevQ = current.get("q") || "";
 
-    if (debouncedSearchQuery === prevQ) return;
+    if (nextQuery === prevQ) return;
 
     current.delete("page");
-    if (!debouncedSearchQuery) {
+    if (!nextQuery) {
       current.delete("q");
     } else {
-      current.set("q", debouncedSearchQuery);
+      current.set("q", nextQuery);
     }
 
     const search = current.toString();
     const query = search ? `?${search}` : "";
     router.replace(`${window.location.pathname}${query}`, { scroll: false });
-  }, [debouncedSearchQuery, router, searchParams]);
+  }, [router, serializedSearchParams]);
+
+  useEffect(() => {
+    if (!isSearchInputFocused) return;
+    if (debouncedSearchQuery !== draftValue) return;
+
+    commitSearchQuery(debouncedSearchQuery);
+  }, [commitSearchQuery, debouncedSearchQuery, draftValue, isSearchInputFocused]);
 
   return (
     <header
@@ -66,7 +70,15 @@ export default function DesktopHeader() {
             type="text"
             placeholder="Rechercher par poste, entreprise..."
             value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
+            onChange={(e) => setDraftValue(e.target.value)}
+            onFocus={() => {
+              setDraftValue(queryFromUrl);
+              setIsSearchInputFocused(true);
+            }}
+            onBlur={() => {
+              commitSearchQuery(draftValue);
+              setIsSearchInputFocused(false);
+            }}
             className="w-full rounded-2xl py-2.5 pl-11 pr-4 text-sm transition-all shadow-sm outline-none
             bg-slate-50 border border-slate-200 focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 focus:bg-white placeholder-slate-400
             dark:bg-slate-900 dark:border-slate-800 dark:focus:border-blue-500/50 dark:focus:bg-slate-950 dark:text-slate-200 dark:placeholder-slate-500"
