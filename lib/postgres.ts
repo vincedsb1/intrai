@@ -112,7 +112,7 @@ async function validateSchema(client: PoolClient): Promise<void> {
   const keys = await client.query<{ tableName: string; columns: string[] }>(
     `SELECT table_name AS "tableName", array_agg(column_name ORDER BY ordinal_position) AS columns
      FROM (
-       SELECT table_class.relname AS table_name, index_info.indexrelid AS index_id, attribute.attname AS column_name,
+       SELECT table_class.relname AS table_name, index_info.indexrelid AS index_id, attribute.attname::text AS column_name,
               key_column.ordinality AS ordinal_position
        FROM pg_index index_info
        JOIN pg_class table_class ON table_class.oid = index_info.indrelid
