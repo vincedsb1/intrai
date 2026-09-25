@@ -4,6 +4,15 @@ description: Prepare, validate, commit, and optionally push the current Git chan
   rules.
 ---
 
+> **Note Suggst — commande auxiliaire.** Cette commande est **générique** et n'appartient à aucun
+> workflow de développement de ce dépôt. Le seul workflow actif est `01-spec` → `02-check` →
+> `03-split` → `04-build` → `05-finish`, avec `06-pivot` en procédure exceptionnelle (voir
+> `AGENTS.md`). Les conventions génériques citées ci-dessous — `.claude/project-config.md`,
+> `backend/`, `frontend/`, `pytest`, `pnpm`, `docs/specs/`, `.state.json` — **n'existent pas dans
+> Suggst**. Les références réelles sont `AGENTS.md`, `CLAUDE.md`, `docs/TESTS.md`, `docs/rebuild/`
+> et les scripts `scripts/build.sh`, `scripts/build-xcode-parity.sh`, `scripts/verify.sh`.
+
+
 # /commit — Automated commit workflow with documentation sync
 
 **Agnostic** workflow that detects code changes, syncs relevant documentation, runs tests, formats code, then commits and pushes. Works in any project that provides a `.claude/project-config.md`.
