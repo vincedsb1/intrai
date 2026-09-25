@@ -21,9 +21,12 @@
 - **Optimisation React** : Utiliser `useMemo` pour les calculs coûteux et `React.lazy` (ou `next/dynamic`) pour le fractionnement du code (code splitting).
 
 ## Data access
-- `lib/mongo.ts`: singleton connection (éviter reconnect)
+- `lib/postgres.ts`: pool PostgreSQL paresseux, marqué serveur, TLS vérifié et réutilisé par instance
+- `DATABASE_URL`: requis au premier accès DB ; ne jamais journaliser sa valeur
 - `server/jobs.service.ts`: logique métier DB
 - `server/settings.service.ts`: règles
+- Requêtes SQL paramétrées ; transactions explicites pour les opérations atomiques
+- Ne jamais lire ni renvoyer `source_ejson`; chaque nouvel `INSERT` doit renseigner son archive JSONB
 
 ## Erreurs
 - API: réponses JSON standard `{ error: { code, message } }`

@@ -9,7 +9,7 @@ export async function POST(
   try {
     await restoreJob(id);
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Restore failed" }, { status: 500 });
   }
 }

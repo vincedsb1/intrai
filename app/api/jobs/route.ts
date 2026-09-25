@@ -19,7 +19,7 @@ export async function GET(req: Request) {
       try {
         const total = await countJobsMatchingOlderThan(days);
         return NextResponse.json({ items: [], total });
-      } catch (error) {
+      } catch {
         return NextResponse.json({ error: "Count failed" }, { status: 500 });
       }
     }
@@ -43,7 +43,7 @@ export async function GET(req: Request) {
       limit,
     });
     return NextResponse.json({ items, total });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "DB Error" }, { status: 500 });
   }
 }

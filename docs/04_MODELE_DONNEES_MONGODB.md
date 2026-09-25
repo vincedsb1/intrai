@@ -1,4 +1,44 @@
-# Modèle de données MongoDB
+# Modèle courant des données PostgreSQL
+
+La cible applicative est `intrai_db.public`. Les identifiants Mongo importés sont stockés comme texte hexadécimal sans conversion ; les lignes créées par l’application utilisent des identifiants texte UUID. Les noms et types physiques complets sont régis par le manifeste du schéma validé.
+
+`source_ejson` est une archive JSONB du document d’origine. Les lectures applicatives sélectionnent les colonnes utiles explicitement et ne renvoient jamais cette archive. Tout nouvel `INSERT` fournit un `source_ejson` JSONB non nul.
+
+## Tables
+
+### `jobs`
+
+- `id`: `text`
+- Dates de création, mise à jour et visite
+- Champs d’offre correspondant à `Job` et `ParsedJob`
+- `ai_analysis`: `JSONB`
+- `tags`: `JSONB` (mappé vers `string[]`)
+- `source_ejson`: `JSONB NOT NULL`
+
+### `settings`
+
+- Singleton identifié par `settings_key = 1`
+- `mongo_id`: identifiant importé conservé comme texte
+- `whitelist`, `blacklist`, `rules`: valeurs JSONB
+- Options, dates et `source_ejson`
+
+### `company_analyses`
+
+- `id`: `text`
+- `company_name`: unique
+- Analyse, date et `source_ejson`
+
+### `location_analyses`
+
+- `id`: `text`
+- `raw_location`: unique
+- Pays, date et `source_ejson`
+
+Les sections ci-dessous décrivent le modèle documentaire historique et sont conservées comme référence de mapping ; elles ne décrivent pas le stockage courant.
+
+---
+
+## Modèle MongoDB historique
 
 ## Collection: `jobs`
 ### Document `Job`

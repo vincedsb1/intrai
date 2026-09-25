@@ -1,44 +1,19 @@
-# Déploiement Vercel
+# Runtime et hébergement
 
-## Variables d’environnement (prod + preview)
-- `MONGODB_URI` = string (Format: `mongodb://user:pass@ip:27017/db?authSource=admin`)
-- `WEBHOOK_SECRET` = string
-- `AI_API_KEY` = string (si AI Detective réel)
-- `AI_MODEL` = string (optionnel)
-- `NEXT_PUBLIC_APP_NAME` = string (optionnel)
+L’application utilise des Route Handlers Next.js exécutés sous Node.js. Le pool `pg` est réutilisé par instance chaude avec une limite initiale d’une connexion. Le build ne se connecte pas à PostgreSQL.
 
-## Infrastructure VPS (MongoDB Self-Hosted)
-Si la base de données est hébergée sur un VPS (non-Atlas), une configuration spécifique est requise pour éviter les timeouts Vercel (`MongoServerSelectionError`).
+## Connexion PostgreSQL
 
-### 1. Configuration Réseau (TCP Keepalive)
-Vercel (Serverless/AWS Lambda) laisse des connexions "zombies". Le VPS doit les tuer rapidement pour ne pas saturer.
-**Commande VPS :**
-```bash
-echo "net.ipv4.tcp_keepalive_time = 300" | sudo tee /etc/sysctl.d/99-mongodb-keepalive.conf
-echo "net.ipv4.tcp_keepalive_intvl = 60" | sudo tee -a /etc/sysctl.d/99-mongodb-keepalive.conf
-echo "net.ipv4.tcp_keepalive_probes = 3" | sudo tee -a /etc/sysctl.d/99-mongodb-keepalive.conf
-sudo sysctl --system
-```
+- L’application exige `DATABASE_URL` pour le premier accès DB et cible `intrai_db.public`.
+- La valeur est fournie séparément par l’environnement d’exécution ; aucun URI, identifiant, secret ou exemple de configuration n’est stocké dans cette documentation.
+- Une valeur manquante ou une connexion TLS invalide produit une erreur serveur claire. La valeur de connexion n’est jamais écrite dans les logs.
+- La validation des certificats TLS reste active.
 
-### 2. Sécurité & Pare-feu
-- **UFW** : Autoriser le port 27017.
-- **Fail2Ban** : ATTENTION. Peut bannir Vercel lors des "Cold Starts" (pics de connexions). Whitelister le port ou surveiller les logs.
-- **Bind IP** : `mongod.conf` doit avoir `bindIp: 0.0.0.0`.
+## Vérifications applicatives
 
-### 3. Stabilité (RAM/Swap)
-MongoDB est gourmand. Sur un petit VPS (<4Go RAM), activer le Swap est obligatoire pour éviter le OOM Killer.
+1. Le build termine sans connexion DB.
+2. Les endpoints de jobs, settings et ingestion gardent leurs contrats JSON.
+3. Une base locale de test exécute les requêtes d’intégration avec le schéma validé.
+4. Les erreurs de configuration restent explicites dans les logs serveur, sans donnée d’offre ni valeur de connexion.
 
-## Checklist déploiement
-1. Build OK
-2. Pages Tabs OK
-3. Connexion Mongo OK (Vérifier logs `[MONGO] 🟢 Connected`)
-4. Endpoint webhook protégé OK
-5. Ingestion crée bien des jobs
-6. Settings persistés
-7. AI Detective stub OK (puis provider si activé)
-
-## Diagnostic Logs
-L'application émet des logs structurés pour le debug :
-- `[MONGO] ...` : État de la connexion (Temps, Heartbeat).
-- `[JOBS] ...` : Temps d'exécution des requêtes DB.
-- `[Email Ingest] ...` : Traitement des webhooks. Note: Les fichiers HTML de debug ne sont écrits qu'en DEV (`NODE_ENV=development`) pour éviter les erreurs `EROFS` sur Vercel.
+Cette page décrit les attentes du runtime ; elle ne demande aucune modification d’environnement, variable, service Production ou déploiement.

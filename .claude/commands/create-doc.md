@@ -3,6 +3,15 @@ name: create-doc
 description: Create or update useful project documentation while respecting the current project's documentation conventions.
 ---
 
+> **Note Suggst — commande auxiliaire.** Cette commande est **générique** et n'appartient à aucun
+> workflow de développement de ce dépôt. Le seul workflow actif est `01-spec` → `02-check` →
+> `03-split` → `04-build` → `05-finish`, avec `06-pivot` en procédure exceptionnelle (voir
+> `AGENTS.md`). Les conventions génériques citées ci-dessous — `.claude/project-config.md`,
+> `backend/`, `frontend/`, `pytest`, `pnpm`, `docs/specs/`, `.state.json` — **n'existent pas dans
+> Suggst**. Les références réelles sont `AGENTS.md`, `CLAUDE.md`, `docs/TESTS.md`, `docs/rebuild/`
+> et les scripts `scripts/build.sh`, `scripts/build-xcode-parity.sh`, `scripts/verify.sh`.
+
+
 # /create-doc — Authoring documentation in a structured docs/ tree
 
 **Agnostic** command that generates or updates a documentation file under the project's `docs/` tree. Conventions (target locations, naming, frontmatter, language) are read from `<project>/.claude/project-config.md` at runtime, with explicit user confirmation when required configuration is missing.

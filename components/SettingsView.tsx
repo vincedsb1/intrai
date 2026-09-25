@@ -24,24 +24,19 @@ export default function SettingsView({ initialData }: SettingsViewProps) {
   const [newBlacklistTerm, setNewBlacklistTerm] = useState("");
   const [newWhitelistTerm, setNewWhitelistTerm] = useState("");
 
-  const saveSettings = async (
-    updatedWhitelist: string[],
-    updatedBlacklist: string[],
-    updatedRules: SmartRule[],
-    updatedDeduplicateCrossRegion: boolean,
-    updatedAiAnalysisEnabled: boolean
-  ) => {
+  const saveSettings = async (updates: {
+    whitelist?: string[];
+    blacklist?: string[];
+    rules?: SmartRule[];
+    removedRuleIds?: string[];
+    deduplicateCrossRegion?: boolean;
+    aiAnalysisEnabled?: boolean;
+  }) => {
     try {
       await fetch("/api/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          whitelist: updatedWhitelist,
-          blacklist: updatedBlacklist,
-          rules: updatedRules,
-          deduplicateCrossRegion: updatedDeduplicateCrossRegion,
-          aiAnalysisEnabled: updatedAiAnalysisEnabled,
-        }),
+        body: JSON.stringify(updates),
       });
     } catch (error) {
       console.error("Failed to save settings:", error);
@@ -51,18 +46,20 @@ export default function SettingsView({ initialData }: SettingsViewProps) {
   const toggleDeduplicateCrossRegion = () => {
     const newValue = !deduplicateCrossRegion;
     setDeduplicateCrossRegion(newValue);
-    saveSettings(whitelist, blacklist, rules, newValue, aiAnalysisEnabled);
+    saveSettings({ deduplicateCrossRegion: newValue });
   };
 
   const toggleAiAnalysisEnabled = () => {
     const newValue = !aiAnalysisEnabled;
     setAiAnalysisEnabled(newValue);
-    saveSettings(whitelist, blacklist, rules, deduplicateCrossRegion, newValue);
+    saveSettings({ aiAnalysisEnabled: newValue });
   };
 
   const updateRules = (updatedRules: SmartRule[]) => {
+    const updatedIds = new Set(updatedRules.map((rule) => rule.id));
+    const removedRuleIds = rules.filter((rule) => !updatedIds.has(rule.id)).map((rule) => rule.id);
     setRules(updatedRules);
-    saveSettings(whitelist, blacklist, updatedRules, deduplicateCrossRegion, aiAnalysisEnabled);
+    saveSettings({ rules: updatedRules, removedRuleIds });
   };
 
   const addWhitelist = () => {
@@ -70,14 +67,14 @@ export default function SettingsView({ initialData }: SettingsViewProps) {
       const newList = [...whitelist, newWhitelistTerm.trim()];
       setWhitelist(newList);
       setNewWhitelistTerm("");
-      saveSettings(newList, blacklist, rules, deduplicateCrossRegion, aiAnalysisEnabled);
+      saveSettings({ whitelist: newList });
     }
   };
 
   const removeWhitelist = (term: string) => {
     const newList = whitelist.filter((t) => t !== term);
     setWhitelist(newList);
-    saveSettings(newList, blacklist, rules, deduplicateCrossRegion, aiAnalysisEnabled);
+    saveSettings({ whitelist: newList });
   };
 
   const addBlacklist = () => {
@@ -85,14 +82,14 @@ export default function SettingsView({ initialData }: SettingsViewProps) {
       const newList = [...blacklist, newBlacklistTerm.trim()];
       setBlacklist(newList);
       setNewBlacklistTerm("");
-      saveSettings(whitelist, newList, rules, deduplicateCrossRegion, aiAnalysisEnabled);
+      saveSettings({ blacklist: newList });
     }
   };
 
   const removeBlacklist = (term: string) => {
     const newList = blacklist.filter((t) => t !== term);
     setBlacklist(newList);
-    saveSettings(whitelist, newList, rules, deduplicateCrossRegion, aiAnalysisEnabled);
+    saveSettings({ blacklist: newList });
   };
 
   return (
@@ -115,7 +112,7 @@ export default function SettingsView({ initialData }: SettingsViewProps) {
                  </div>
                  <div>
                     <h3 className="font-bold text-lg text-slate-900 dark:text-slate-100">Filtrage intelligent des doublons</h3>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">Détecter les offres identiques (Même titre/Entreprise) postées dans d'autres pays (30 jours glissants).</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Détecter les offres identiques (Même titre/Entreprise) postées dans d&apos;autres pays (30 jours glissants).</p>
                  </div>
             </div>
 
@@ -138,7 +135,7 @@ export default function SettingsView({ initialData }: SettingsViewProps) {
                  </div>
                  <div>
                     <h3 className="font-bold text-lg text-slate-900 dark:text-slate-100">Analyse IA des entreprises</h3>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">Active l'analyse automatique par IA (classification Plateforme/Entreprise + pays) — consomme du crédit IA à chaque nouvelle offre.</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Active l&apos;analyse automatique par IA (classification Plateforme/Entreprise + pays) — consomme du crédit IA à chaque nouvelle offre.</p>
                  </div>
             </div>
 

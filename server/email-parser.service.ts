@@ -55,7 +55,7 @@ export function parseEmail(
     company = atMatch[2].trim();
   }
 
-  let parserGrade: "A" | "B" | "C" = url ? (company ? "A" : "B") : "C";
+  const parserGrade: "A" | "B" | "C" = url ? (company ? "A" : "B") : "C";
 
   return {
     jobs: [{

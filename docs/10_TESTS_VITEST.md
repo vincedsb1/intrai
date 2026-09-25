@@ -21,7 +21,7 @@ Sécuriser la logique de tri, les transitions de statut, et les endpoints princi
 
 ## Conventions
 - Tests rapides, pas de dépendance réseau
-- Mongo:
-  - option A: mongo-memory-server
-  - option B: DB dédiée “test” via env
-Recommandation: mongo-memory-server pour intégration.
+- Tests unitaires : remplacer le pool PostgreSQL et le client IA par des doubles contrôlés.
+- Intégration PostgreSQL : exécuter contre une instance locale jetable avec le schéma validé ; le harnais refuse toute cible non locale et n’utilise pas une URL héritée.
+- Ne jamais utiliser Production pour les tests. Ne pas appeler de fournisseur IA ni utiliser de réseau externe dans la suite.
+- Vérifications de livraison : `npm run lint`, `npm test -- --run`, `npx tsc --noEmit` et `npm run build`.

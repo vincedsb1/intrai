@@ -8,7 +8,7 @@ Construire un “Hub de tri” pour offres d’emploi (**intrai**) : un flux uni
 2. `/docs/01_OBJECTIF_PRODUIT.md`
 3. `/docs/02_PLAN_DE_BUILD.md`
 4. `/docs/03_STACK_ET_CONTRAINTES.md`
-5. `/docs/04_MODELE_DONNEES_MONGODB.md`
+5. `/docs/04_MODELE_DONNEES_MONGODB.md` (nom historique ; modèle PostgreSQL courant)
 6. `/docs/05_API_BACKEND_CONTRATS.md`
 7. `/docs/06_UI_MAP_ET_REGLES.md`
 8. `/docs/07_COMPOSANTS_UI_SPEC.md`
@@ -41,10 +41,13 @@ Documents relatifs à la maintenance de la documentation et du projet :
 
 ## Contexte technique
 - Front: Next.js (App Router) + TypeScript + Tailwind CSS v4.1 (obligatoire)
-- Backend: Route Handlers Next.js (API) + MongoDB
+- Backend: Route Handlers Next.js (API) + PostgreSQL via `pg`
 - Tests: Vitest (unitaires + intégration), pas de e2e
-- Déploiement: Vercel + variables d’env (secrets)
+- Déploiement: runtime Node.js hébergé sur Vercel
 
 ## Sources de vérité
 - [Specs fonctionnelles v12](/docs/01_OBJECTIF_PRODUIT.md) (navigation, statuts, logique de tri, AI Detective).
 - [Maquette UI (React/Tailwind)](/docs/MAQUETTE_UI.tsx) : structure des tabs, cartes, modale AI, styles.
+
+## Plan de migration
+- [Migration de l’accès applicatif vers PostgreSQL](PLAN_MIGRATION_POSTGRESQL.md) : étapes, invariants, scripts concernés et critères de validation.

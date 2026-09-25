@@ -1,4 +1,6 @@
-# Plan de build (phases)
+# Plan de build historique
+
+Ce document décrit la première version de l’application. Ses étapes MongoDB et déploiement sont obsolètes ; le plan courant d’accès PostgreSQL est [PLAN_MIGRATION_POSTGRESQL.md](PLAN_MIGRATION_POSTGRESQL.md). Ne pas utiliser cette feuille de route pour configurer une base ou un environnement de production.
 
 ## Phase 0 — Repo & local
 1. Créer repo GitHub (main)
@@ -18,7 +20,7 @@
 4. FAB “Nettoyer les visités”
 5. Réglages whitelist/blacklist (chips + inputs)
 
-## Phase 3 — MongoDB
+## Phase 3 — MongoDB (historique, remplacé par PostgreSQL)
 1. Connexion Mongo (driver officiel)
 2. Collections: jobs, settings
 3. Indexes (url unique, createdAt)
@@ -39,7 +41,5 @@
 2. Integration: endpoints API (supertest-like via fetch, ou Next test utils)
 3. Pas de e2e
 
-## Phase 7 — Vercel
-1. Variables d’env (Mongo URL, webhook secret, AI key)
-2. Déploiement preview + prod
-3. Vérifs: ingestion OK, UI OK
+## Phase 7 — Hébergement (historique)
+Les opérations d’hébergement ne font pas partie du plan de migration. Aucune variable ni aucun déploiement ne doit être modifié dans le cadre de cette feuille de route historique.

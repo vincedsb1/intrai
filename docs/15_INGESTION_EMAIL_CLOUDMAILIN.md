@@ -2,7 +2,7 @@
 
 **Status**: Draft
 **Version**: 1.0 (Aligné Specs v12)
-**Stack**: CloudMailin -> Next.js API -> MongoDB
+**Stack**: CloudMailin -> Next.js API -> services serveur -> PostgreSQL
 
 ---
 
@@ -19,7 +19,7 @@ Nous utilisons [CloudMailin](https://www.cloudmailin.com/) comme passerelle.
 3. CloudMailin POST un JSON structuré vers notre webhook sécurisé.
 
 ### Flux de Données
-`[Email Client]` -> `[CloudMailin]` -> `[POST /api/ingest/webhook]` -> `[Parsing & Tri]` -> `[MongoDB]`
+`[Email Client]` -> `[CloudMailin]` -> `[POST /api/ingest/email]` -> `[Parsing & Tri]` -> `[PostgreSQL]`
 
 ---
 
@@ -51,11 +51,7 @@ Format : `intrai-xxxyyy@cloudmailin.net`
 - **POST Format** : `Multipart/form-data` ou `JSON Body` (préférer JSON Body pour Next.js).
 
 ### Sécurité
-CloudMailin ne signe pas toujours les requêtes de manière standard HMAC.
-Nous utiliserons un **Secret en Query Param ou Header** configuré dans CloudMailin.
-Exemple URL CloudMailin : `.../api/ingest/webhook?secret=MON_SUPER_SECRET`
-Ou Header personnalisé si possible.
-*Dans notre implémentation actuelle, nous attendons un header `x-webhook-secret`.*
+L’authentification existante de la requête reste requise et sa configuration demeure hors de ce dépôt. Ne pas inclure de valeur d’authentification dans la documentation ou les logs.
 
 ---
 
@@ -131,25 +127,9 @@ Une fois l'objet `Job` instancié (mais pas sauvé), on applique le `classifyJob
 
 ---
 
-## 7. Persistance en Base (MongoDB)
+## 7. Persistance en base (PostgreSQL)
 
-Mapping vers la collection `jobs`.
-
-```typescript
-const newJob = {
-  _id: new ObjectId(),
-  createdAt: new Date(),
-  title: parsed.title,       // String
-  company: parsed.company,   // String | null
-  url: parsed.url,           // String (Unique index recommended)
-  rawString: parsed.raw,     // Pour debug / ré-analyse
-  parserGrade: parsed.grade, // "A" | "B" | "C"
-  category: classified.category,
-  status: "INBOX",
-  source: "EMAIL_CLOUDMAILIN", // Nouveau champ pour tracer l'origine
-  aiAnalysis: null
-};
-```
+`server/jobs.service.ts` mappe `ParsedJob` vers `jobs` avec des requêtes paramétrées. Les IDs existants restent du texte hexadécimal ; les nouvelles lignes reçoivent un UUID texte. Chaque nouvel `INSERT` fournit un `source_ejson` JSONB non nul ; cette archive n’est jamais relue par l’application ni incluse dans une réponse API. Le contrôle de doublon URL préserve le statut et la catégorie de l’offre existante.
 
 ---
 

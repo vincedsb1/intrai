@@ -19,7 +19,7 @@ export async function POST(
     console.log(`[API Visit] Success for ${id}`);
     
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Visit update failed" }, { status: 500 });
   }
 }

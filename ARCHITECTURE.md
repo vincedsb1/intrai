@@ -16,7 +16,7 @@ Une seule liste Inbox (flux unique), et des vues secondaires : Traitées (Saved/
 ## Découpage (monorepo unique)
 - Next.js App Router
 - UI: composants React + Tailwind v4.1
-- Data: MongoDB (Direct Connection forcée pour compatibilité VPS)
+- Data: PostgreSQL (`intrai_db.public`) via un pool `pg` paresseux et server-only
 - API: Next Route Handlers sous `/app/api/**`
 
 ## Dossiers
@@ -27,7 +27,7 @@ Une seule liste Inbox (flux unique), et des vues secondaires : Traitées (Saved/
   - **Structure**: `Sidebar`, `MobileHeader`, `DesktopHeader`.
   - **Core**: `JobCard` (v2), `FilterBar`, `Toast` (Custom Action + Dismiss).
   - **Modals**: `AiDetectiveModal`, `BlacklistModal`.
-- `/lib` : db (mongo avec logs), validation, helpers, constantes
+- `/lib` : pool PostgreSQL, sérialisation JSONB, validation, helpers, constantes
 - `/server` : services métier (jobs, settings, ai, parser)
 - `/docs` : documentation indexée
 
@@ -96,9 +96,10 @@ Règles intelligentes supportent deux catégories de fields :
    - UTC timezone pour cohérence DB
 
 ## Infra & Logs
-- **MongoDB**: Driver configuré en `directConnection: true` + `family: 4` + Timeouts longs (30s) pour VPS.
-- **VPS**: Nécessite `net.ipv4.tcp_keepalive_time = 300` pour compatibilité Serverless Vercel.
+- **PostgreSQL**: `DATABASE_URL` requis au premier accès DB ; pool max 1 par instance chaude et validation TLS active.
+- **Archive**: `source_ejson` est une archive JSONB en écriture seulement ; ne pas l’utiliser dans les lectures applicatives ni les réponses API.
+- **IDs**: Identifiants importés conservés en texte hexadécimal ; nouveaux IDs en texte UUID.
 - **Logs**:
-  - `[MONGO]`: États connexion (Dev/Prod).
+  - `[PostgreSQL]`: Erreurs du pool sans URL ni données métier.
   - `[JOBS]`: Perf requêtes.
   - `[Email Ingest]`: Debug HTML (Dev uniquement).

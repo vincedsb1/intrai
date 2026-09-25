@@ -6,11 +6,11 @@ export interface AIAnalysis {
   isPlatformOrAgency: boolean;
   type: string;
   reason: string;
-  createdAt: Date | string;
+  createdAt: Date | string | null;
 }
 
 export interface CompanyAnalysis {
-  _id?: string;
+  id: string;
   companyName: string;
   isPlatformOrAgency: boolean;
   type: string;
@@ -19,15 +19,16 @@ export interface CompanyAnalysis {
 }
 
 export interface LocationAnalysis {
-  _id?: string;
+  id: string;
   rawLocation: string;
   country: string;
   createdAt: Date | string;
 }
 
 export interface Job {
-  id: string; // Map from _id in DB
-  createdAt: Date | string;
+  id: string; // Identifiant texte PostgreSQL, conservé tel qu’importé
+  createdAt: Date | string | null;
+  updatedAt?: Date | string | null;
   title: string | null;
   company: string | null;
   location: string | null;
@@ -36,7 +37,7 @@ export interface Job {
   salary?: string | null;
   isActiveRecruiting?: boolean;
   isEasyApply?: boolean;
-  isHighMatch?: boolean; // Correspondance élevée
+  isHighMatch?: boolean | null; // Correspondance élevée
   url: string;
   logoUrl?: string | null; // URL du logo de l'entreprise
   rawString?: string;
@@ -76,6 +77,7 @@ export interface SmartRule {
 }
 
 export interface Settings {
+  _id?: string; // mongo_id conservé comme texte dans le stockage PostgreSQL
   whitelist: string[];
   blacklist: string[];
   rules: SmartRule[];
