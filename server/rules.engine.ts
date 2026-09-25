@@ -8,10 +8,9 @@ const INVALID_AGE = -1; // Signifie createdAt invalide/null
  *      Créé hier → 1 jour
  * @returns Nombre entier >= 0, ou INVALID_AGE (-1) si invalide
  */
-function calculateAgeInDays(createdAt: Date | string | null | undefined): number {
+function calculateAgeInDays(createdAt: Date | string | null | undefined, now: Date): number {
   if (!createdAt) return INVALID_AGE;
   const created = typeof createdAt === "string" ? new Date(createdAt) : createdAt;
-  const now = new Date();
   const diffMs = now.getTime() - created.getTime();
   return Math.ceil(diffMs / (1000 * 60 * 60 * 24));
 }
@@ -34,12 +33,13 @@ function normalize(str: string | null | undefined): string {
 function checkCondition(
   jobValue: string | null | undefined | Date,
   targetValue: string | string[] | number,
-  operator: RuleOperator
+  operator: RuleOperator,
+  now: Date
 ): boolean {
   // Cas spécial: opérateurs temporels
   if (operator === "olderThan") {
     if (!jobValue || typeof targetValue !== "number") return false;
-    const ageInDays = calculateAgeInDays(jobValue as Date | string);
+    const ageInDays = calculateAgeInDays(jobValue as Date | string, now);
     return ageInDays >= targetValue; // Inclusif (>=)
   }
 
@@ -104,7 +104,7 @@ function getJobValue(job: Partial<Job>, field: RuleCondition["field"]): string |
  * Evalue si un job correspond à une règle
  * @returns true si la règle matche (toutes conditions remplies)
  */
-export function evaluateRule(job: Partial<Job>, rule: SmartRule): boolean {
+export function evaluateRule(job: Partial<Job>, rule: SmartRule, now = new Date()): boolean {
   if (!rule.enabled) {
     return false;
   }
@@ -112,7 +112,7 @@ export function evaluateRule(job: Partial<Job>, rule: SmartRule): boolean {
   // Logique ET : Toutes les conditions doivent être vraies
   for (const condition of rule.conditions) {
     const jobValue = getJobValue(job, condition.field);
-    const isMatch = checkCondition(jobValue, condition.value, condition.operator);
+    const isMatch = checkCondition(jobValue, condition.value, condition.operator, now);
 
     if (!isMatch) {
       return false; // Une condition a échoué

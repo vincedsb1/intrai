@@ -1,15 +1,16 @@
 import { NextResponse } from "next/server";
 import { analyzeJobAuthor } from "@/server/ai.service";
-import { getDb } from "@/lib/mongo";
-import { ObjectId } from "mongodb";
+import { getJobForAnalysis, persistJobAnalysis } from "@/server/jobs.service";
+import { assertSupportedRecordId } from "@/lib/ids";
 
 export async function POST(req: Request) {
   try {
     const { jobId } = await req.json();
     if (!jobId) return NextResponse.json({ error: "jobId required" }, { status: 400 });
 
-    const db = await getDb();
-    const job = await db.collection("jobs").findOne({ _id: new ObjectId(jobId) });
+    if (typeof jobId !== "string") throw new TypeError("jobId must be text.");
+    assertSupportedRecordId(jobId);
+    const job = await getJobForAnalysis(jobId);
 
     if (!job) return NextResponse.json({ error: "Job not found" }, { status: 404 });
 
@@ -22,14 +23,10 @@ export async function POST(req: Request) {
       createdAt: new Date()
     };
 
-    await db.collection("jobs").updateOne(
-      { _id: new ObjectId(jobId) },
-      { $set: { aiAnalysis } }
-    );
+    await persistJobAnalysis(jobId, aiAnalysis);
 
     return NextResponse.json(aiAnalysis);
-  } catch (error) {
-    console.error("Route analysis error:", error);
+  } catch {
     return NextResponse.json({ error: "Analysis failed" }, { status: 500 });
   }
 }

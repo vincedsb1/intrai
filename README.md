@@ -29,7 +29,7 @@
 - **Framework**: [Next.js](https://nextjs.org/) (App Router)
 - **Language**: [TypeScript](https://www.typescriptlang.org/)
 - **Styling**: [Tailwind CSS](https://tailwindcss.com/)
-- **Database**: [MongoDB](https://www.mongodb.com/)
+- **Database**: PostgreSQL (`intrai_db`, schéma `public`)
 - **Deployment**: [Vercel](https://vercel.com/) (or any Node.js environment)
 
 ## 🚀 Getting Started
@@ -38,7 +38,7 @@
 
 - [Node.js](https://nodejs.org/) (v18 or later)
 - `npm` or `yarn`
-- A [MongoDB](https://www.mongodb.com/try/download/community) database (local or cloud-hosted like MongoDB Atlas)
+- Une instance PostgreSQL avec le schéma applicatif `intrai_db.public`
 
 ### 1. Installation
 
@@ -50,26 +50,9 @@ cd intrai
 npm install
 ```
 
-### 2. Environment Variables
+### 2. Runtime configuration
 
-Create a `.env.local` file in the root of the project and add the following variables.
-
-**⚠️ Important**: Never commit this file to your repository.
-
-```env
-# .env.local
-
-# Your MongoDB connection string.
-# Example for a local instance: mongodb://localhost:27017/intrai
-MONGODB_URI="YOUR_MONGO_URI"
-
-# A secret string to secure your webhook endpoint.
-# Generate a long, random string.
-WEBHOOK_SECRET="YOUR_SECRET_HERE"
-
-# Optional: If you want to use a real AI provider for analysis.
-# AI_API_KEY="sk-..."
-```
+Database-backed requests require `DATABASE_URL`. The value is supplied out of band by the runtime; this repository intentionally contains no connection string or secret example. The application reports a clear server-side error when the variable is missing and never logs its value. PostgreSQL TLS certificate validation remains enabled.
 
 ### 3. Run the Development Server
 
@@ -85,8 +68,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser to see the a
 
 `intrai` is designed to receive job offers via a webhook, typically from an email parsing service like [CloudMailin](https://www.cloudmailin.com/).
 
-1.  **Get Your Webhook URL**: Once deployed (or using a tunneling service like `ngrok` for local development), your webhook URL will be:
-    `https://<your-app-domain>/api/ingest/email?secret=<YOUR_WEBHOOK_SECRET>`
+1.  **Get Your Webhook URL**: Once deployed (or using a tunneling service for local development), use the `/api/ingest/email` endpoint and preserve the existing request authentication configured out of band.
 
 2.  **Configure CloudMailin**:
     - Create an account on CloudMailin and get your unique email address (e.g., `your-inbox@cloudmailin.net`).

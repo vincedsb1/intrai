@@ -211,7 +211,7 @@ describe("FilterOldJobsDialog", () => {
       const user = userEvent.setup();
       global.fetch = vi.fn(
         () =>
-          new Promise((resolve) =>
+          new Promise<Response>((resolve) =>
             setTimeout(
               () =>
                 resolve({

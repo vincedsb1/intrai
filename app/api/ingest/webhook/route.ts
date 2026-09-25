@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { ingestJob } from "@/server/jobs.service";
+import { safeErrorSummary } from "@/lib/postgres";
 
 export async function POST(req: Request) {
   const secret = req.headers.get("x-webhook-secret");
@@ -17,7 +18,7 @@ export async function POST(req: Request) {
     const job = await ingestJob(body);
     return NextResponse.json({ item: job });
   } catch (error) {
-    console.error("Ingestion error:", error);
+    console.error("Ingestion error:", safeErrorSummary(error));
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

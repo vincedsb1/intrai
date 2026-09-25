@@ -405,24 +405,24 @@ describe("Inbox — Filter old jobs integration", () => {
 
   describe("Toast messaging", () => {
     it("should format success message with singular 'offre' and 'jour'", () => {
-      const days = 1;
-      const filteredCount = 1;
+      const days: number = 1;
+      const filteredCount: number = 1;
       const message = `${filteredCount} offre${filteredCount !== 1 ? "s" : ""} filtrée${filteredCount !== 1 ? "s" : ""} (> ${days} jour${days !== 1 ? "s" : ""})`;
 
       expect(message).toBe("1 offre filtrée (> 1 jour)");
     });
 
     it("should format success message with plural 'offres' and 'jours'", () => {
-      const days = 30;
-      const filteredCount = 15;
+      const days: number = 30;
+      const filteredCount: number = 15;
       const message = `${filteredCount} offre${filteredCount !== 1 ? "s" : ""} filtrée${filteredCount !== 1 ? "s" : ""} (> ${days} jour${days !== 1 ? "s" : ""})`;
 
       expect(message).toBe("15 offres filtrées (> 30 jours)");
     });
 
     it("should format success message with mixed singular/plural", () => {
-      const days = 1;
-      const filteredCount = 5;
+      const days: number = 1;
+      const filteredCount: number = 5;
       const message = `${filteredCount} offre${filteredCount !== 1 ? "s" : ""} filtrée${filteredCount !== 1 ? "s" : ""} (> ${days} jour${days !== 1 ? "s" : ""})`;
 
       expect(message).toBe("5 offres filtrées (> 1 jour)");

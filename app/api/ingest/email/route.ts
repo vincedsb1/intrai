@@ -3,7 +3,8 @@ import { parseEmail } from "@/server/email-parser.service";
 import { ingestJob } from "@/server/jobs.service";
 import { resolveCompanyAnalyses, resolveLocationAnalyses } from "@/server/ai.service";
 import { getSettings } from "@/server/settings.service";
-import { getDb } from "@/lib/mongo";
+import { logDatabaseError, postgresErrorCode, safeErrorSummary } from "@/lib/postgres";
+import type { Job } from "@/lib/types";
 import fs from "fs/promises";
 import path from "path";
 
@@ -53,12 +54,6 @@ export async function POST(req: Request) {
 
     console.log(`[Email Ingest] Strategy: ${parseResult.source}, Found ${jobs.length} jobs`);
 
-    // --- DEBUG LOGOS ---
-    for (const j of jobs) {
-      console.log(`[Email Ingest DEBUG] Job: "${j.title}" | Company: "${j.company}" | logoUrl: ${j.logoUrl ? j.logoUrl.substring(0, 150) : 'NULL'} | Grade: ${j.parserGrade}`);
-    }
-    // --- FIN DEBUG ---
-
     // 4.5 Analyse IA (Entreprises + Localisations) en parallèle
     const settings = await getSettings();
     const uniqueCompanies = jobs.map(j => j.company);
@@ -75,33 +70,22 @@ export async function POST(req: Request) {
     const ingestedIds = [];
     
     for (const job of jobs) {
-      // Enrichissement AI Entreprise
-      if (job.company && analysesMap.has(job.company)) {
-        (job as any).aiAnalysis = analysesMap.get(job.company);
-      }
+      const jobToIngest: Partial<Job> = {
+        ...job,
+        aiAnalysis: job.company ? analysesMap.get(job.company) : undefined,
+        country: job.location ? locationsMap.get(job.location) : undefined,
+        url: job.url || `https://missing-url.com/${messageId}-${Date.now()}`,
+      };
 
-      // Enrichissement AI Pays
-      if (job.location && locationsMap.has(job.location)) {
-        (job as any).country = locationsMap.get(job.location);
-      }
-
-      // On enrichit avec le messageId si l'URL est générée (fallback)
-      if (!job.url) {
-        job.url = `https://missing-url.com/${messageId}-${Date.now()}`;
-      }
-
-      // 6. Appel au service d'ingestion (Routing Blacklist/Whitelist)
-      // Note: ingestJob gère déjà l'insertion DB. 
-      // Si l'URL existe déjà (index unique), MongoDB lèvera une erreur E11000.
-      // Il faut le gérer ici pour ne pas planter toute la boucle.
+      // 6. Appel au service d'ingestion (classement et dédoublonnage PostgreSQL)
       try {
-        const result = await ingestJob(job);
+        const result = await ingestJob(jobToIngest);
         ingestedIds.push(result.id);
-      } catch (err: any) {
-        if (err.code === 11000) {
-          console.warn(`[Email Ingest] Duplicate URL skipped: ${job.url}`);
+      } catch (error) {
+        if (postgresErrorCode(error) === "23505") {
+          console.warn("[Email Ingest] Duplicate job ignored by a PostgreSQL uniqueness constraint.");
         } else {
-          console.error(`[Email Ingest] Error saving job ${job.title}:`, err);
+          logDatabaseError("[Email Ingest] Job persistence failed.", error);
         }
       }
     }
@@ -112,7 +96,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true, count: ingestedIds.length, ids: ingestedIds });
 
   } catch (error) {
-    console.error("[Email Ingest] Error:", error);
+    console.error("[Email Ingest] Request failed.", safeErrorSummary(error));
     return NextResponse.json({ success: false, error: "Internal Error handled" }, { status: 200 });
   }
 }

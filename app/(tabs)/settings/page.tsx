@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 export default async function SettingsPage() {
   const settings = await getSettings();
 
-  // On passe les données réelles (sans le _id de mongo pour éviter les erreurs de sérialisation)
+  // Seules les propriétés consommées par le client sont transmises.
   const initialData = {
     whitelist: settings.whitelist || [],
     blacklist: settings.blacklist || [],

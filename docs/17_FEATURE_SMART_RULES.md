@@ -138,14 +138,14 @@ Règles supportent désormais la **date de création** des offres. Voir `/docs/s
 **Exemple** : "Filtrer les offres publiées il y a plus de 7 jours"
 
 ### 7.2 Implémentation (v1.1)
-- Nouveau field : `"createdAt"` (Date MongoDB, préexistant)
+- Nouveau field : `"createdAt"` (date de création persistée en PostgreSQL)
 - Opérateur : `"olderThan"` (inclusif, valeur en jours)
 - Architecture : Calcul côté serveur (UTC), aucune migration DB requise
 - Tests : Unit tests Vitest complets (7 tests)
 
 ### 7.3 Détails techniques
 - Calcul d'âge : `Math.ceil((now - createdAt) / (1000*60*60*24))`
-- Timezone : UTC (cohérent avec MongoDB)
+- Calcul : durée écoulée en millisecondes, avec le même arrondi `Math.ceil` inclusif que le moteur TypeScript
 - Opérateur : `"olderThan"` = offres créées il y a >= N jours
 - Opérateur futur : `"newerThan"` (offres récentes) — architecture ready
 
@@ -250,8 +250,8 @@ Description: Applique la règle aux offres existantes et retourne le count
 
 ### 8.6 Stockage & Durée
 
-- **Stockage** : MongoDB, collection `settings.rules[]`
-- **Atomicité** : Opérateur MongoDB `$push` pour éviter les pertes concurrentes
+- **Stockage** : PostgreSQL, singleton `settings` avec `rules` JSONB
+- **Atomicité** : verrou de ligne et transaction partagée avec le filtrage des offres concernées
 - **Durée** : Règle persiste jusqu'à suppression manuelle
 - **Comportement** : Les offres filtrées disparaissent immédiatement de l'Inbox
 

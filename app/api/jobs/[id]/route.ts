@@ -13,7 +13,7 @@ export async function PATCH(
 
     await updateJobStatus(id, status as JobStatus);
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Update failed" }, { status: 500 });
   }
 }

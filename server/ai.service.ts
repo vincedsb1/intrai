@@ -1,131 +1,157 @@
+import "server-only";
 import OpenAI from "openai";
-import { withMongo } from "@/lib/mongo";
-import { CompanyAnalysis, AIAnalysis, LocationAnalysis } from "@/lib/types";
+import { createRecordId } from "@/lib/ids";
+import { mapCompanyAnalysisRow, mapLocationAnalysisRow } from "@/lib/row-mappers";
+import { query } from "@/lib/postgres";
+import { stringifySourceEjson } from "@/lib/source-ejson";
+import type { AIAnalysis, CompanyAnalysis, LocationAnalysis } from "@/lib/types";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+let openaiClient: OpenAI | undefined;
+
+function getOpenAI(): OpenAI {
+  if (!process.env.OPENAI_API_KEY) throw new Error("OPENAI_API_KEY is required for AI analysis.");
+  openaiClient ??= new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  return openaiClient;
+}
+
+function uniqueTrimmed(values: (string | null)[]): string[] {
+  return Array.from(new Set(
+    values.filter((value): value is string => Boolean(value?.trim())).map((value) => value.trim())
+  ));
+}
+
+function cacheErrorName(error: unknown): string {
+  return error instanceof Error ? error.name : "UNKNOWN_ERROR";
+}
+
+function companyProjection(): string {
+  return `id, company_name AS "companyName", is_platform_or_agency AS "isPlatformOrAgency",
+          type, reason, created_at AS "createdAt"`;
+}
+
+function locationProjection(): string {
+  return `id, raw_location AS "rawLocation", country, created_at AS "createdAt"`;
+}
 
 export async function resolveCompanyAnalyses(companies: (string | null)[]): Promise<Map<string, AIAnalysis>> {
-  return await withMongo(async (db) => {
-    const analysesCollection = db.collection<CompanyAnalysis>("company_analyses");
-    
-    // 1. Nettoyage et déduplication des noms d'entreprises
-    const uniqueCompanies = Array.from(new Set(
-      companies
-        .filter((c): c is string => !!c && c.trim().length > 0)
-        .map(c => c.trim())
-    ));
+  const uniqueCompanies = uniqueTrimmed(companies);
+  const resultsMap = new Map<string, AIAnalysis>();
+  if (uniqueCompanies.length === 0) return resultsMap;
 
-    if (uniqueCompanies.length === 0) return new Map();
-
-    const resultsMap = new Map<string, AIAnalysis>();
-
-    // 2. Récupération du Cache (DB)
-    const existingAnalyses = await analysesCollection.find({
-      companyName: { $in: uniqueCompanies }
-    }).toArray();
-
-    const foundCompanies = new Set<string>();
-    
-    existingAnalyses.forEach(analysis => {
-      resultsMap.set(analysis.companyName, {
-        isPlatformOrAgency: analysis.isPlatformOrAgency,
-        type: analysis.type,
-        reason: analysis.reason,
-        createdAt: analysis.createdAt
-      });
-      foundCompanies.add(analysis.companyName);
+  const cached = await query<Record<string, unknown>>(
+    `SELECT ${companyProjection()}
+     FROM public.company_analyses
+     WHERE company_name = ANY($1::text[])`,
+    [uniqueCompanies]
+  );
+  const foundCompanies = new Set<string>();
+  for (const row of cached.rows) {
+    const analysis = mapCompanyAnalysisRow(row);
+    resultsMap.set(analysis.companyName, {
+      isPlatformOrAgency: analysis.isPlatformOrAgency,
+      type: analysis.type,
+      reason: analysis.reason,
+      createdAt: analysis.createdAt,
     });
+    foundCompanies.add(analysis.companyName);
+  }
 
-    // 3. Identification des manquants
-    const missingCompanies = uniqueCompanies.filter(c => !foundCompanies.has(c));
+  const missingCompanies = uniqueCompanies.filter((company) => !foundCompanies.has(company));
+  if (missingCompanies.length === 0) return resultsMap;
 
-    if (missingCompanies.length === 0) {
-      return resultsMap;
-    }
+  const analyzed = await analyzeCompaniesBatch(missingCompanies);
+  for (const analysis of analyzed) {
+    if (!missingCompanies.includes(analysis.company)) continue;
+    const persisted = await persistCompanyAnalysis(analysis);
+    if (!persisted) continue;
+    resultsMap.set(persisted.companyName, {
+      isPlatformOrAgency: persisted.isPlatformOrAgency,
+      type: persisted.type,
+      reason: persisted.reason,
+      createdAt: persisted.createdAt,
+    });
+  }
+  return resultsMap;
+}
 
-    // 4. Appel IA Batch (seulement pour les manquants)
-    console.log(`[AI Batch] Analyzing ${missingCompanies.length} new companies:`, missingCompanies);
-    const newAnalyses = await analyzeCompaniesBatch(missingCompanies);
-
-    // 5. Sauvegarde et mise à jour de la Map
-    if (newAnalyses.length > 0) {
-      await analysesCollection.insertMany(newAnalyses.map(a => ({
-        companyName: a.company,
-        isPlatformOrAgency: a.isPlatformOrAgency,
-        type: a.type,
-        reason: a.reason,
-        createdAt: new Date()
-      })));
-
-      newAnalyses.forEach(a => {
-        resultsMap.set(a.company, {
-          isPlatformOrAgency: a.isPlatformOrAgency,
-          type: a.type,
-          reason: a.reason,
-          createdAt: new Date()
-        });
-      });
-    }
-
-    return resultsMap;
+async function persistCompanyAnalysis(input: BatchAnalysisResult): Promise<CompanyAnalysis | null> {
+  const id = createRecordId();
+  const createdAt = new Date();
+  const sourceEjson = stringifySourceEjson({
+    _id: id,
+    companyName: input.company,
+    isPlatformOrAgency: input.isPlatformOrAgency,
+    type: input.type,
+    reason: input.reason,
+    createdAt,
   });
+  const inserted = await query<Record<string, unknown>>(
+    `INSERT INTO public.company_analyses
+       (id, company_name, is_platform_or_agency, type, reason, created_at, source_ejson)
+     VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb)
+     ON CONFLICT (company_name) DO NOTHING
+     RETURNING ${companyProjection()}`,
+    [id, input.company, input.isPlatformOrAgency, input.type, input.reason, createdAt, sourceEjson]
+  );
+  const row = inserted.rows[0] ?? (await query<Record<string, unknown>>(
+    `SELECT ${companyProjection()} FROM public.company_analyses WHERE company_name = $1 LIMIT 1`,
+    [input.company]
+  )).rows[0];
+  return row ? mapCompanyAnalysisRow(row) : null;
 }
 
 export async function resolveLocationAnalyses(locations: (string | null)[]): Promise<Map<string, string>> {
-  return await withMongo(async (db) => {
-    const analysesCollection = db.collection<LocationAnalysis>("location_analyses");
-    
-    // 1. Nettoyage
-    const uniqueLocations = Array.from(new Set(
-      locations
-        .filter((l): l is string => !!l && l.trim().length > 0)
-        .map(l => l.trim())
-    ));
+  const uniqueLocations = uniqueTrimmed(locations);
+  const resultsMap = new Map<string, string>();
+  if (uniqueLocations.length === 0) return resultsMap;
 
-    if (uniqueLocations.length === 0) return new Map();
+  const cached = await query<Record<string, unknown>>(
+    `SELECT ${locationProjection()}
+     FROM public.location_analyses
+     WHERE raw_location = ANY($1::text[])`,
+    [uniqueLocations]
+  );
+  const foundLocations = new Set<string>();
+  for (const row of cached.rows) {
+    const analysis = mapLocationAnalysisRow(row);
+    resultsMap.set(analysis.rawLocation, analysis.country);
+    foundLocations.add(analysis.rawLocation);
+  }
 
-    const resultsMap = new Map<string, string>();
+  const missingLocations = uniqueLocations.filter((location) => !foundLocations.has(location));
+  if (missingLocations.length === 0) return resultsMap;
 
-    // 2. Cache
-    const existingAnalyses = await analysesCollection.find({
-      rawLocation: { $in: uniqueLocations }
-    }).toArray();
+  const analyzed = await analyzeLocationsBatch(missingLocations);
+  for (const analysis of analyzed) {
+    if (!missingLocations.includes(analysis.raw)) continue;
+    const persisted = await persistLocationAnalysis(analysis);
+    if (persisted) resultsMap.set(persisted.rawLocation, persisted.country);
+  }
+  return resultsMap;
+}
 
-    const foundLocations = new Set<string>();
-    
-    existingAnalyses.forEach(analysis => {
-      resultsMap.set(analysis.rawLocation, analysis.country);
-      foundLocations.add(analysis.rawLocation);
-    });
-
-    // 3. Manquants
-    const missingLocations = uniqueLocations.filter(l => !foundLocations.has(l));
-
-    if (missingLocations.length === 0) {
-      return resultsMap;
-    }
-
-    // 4. IA Batch
-    console.log(`[AI Batch] Analyzing ${missingLocations.length} new locations:`, missingLocations);
-    const newAnalyses = await analyzeLocationsBatch(missingLocations);
-
-    // 5. Sauvegarde
-    if (newAnalyses.length > 0) {
-      await analysesCollection.insertMany(newAnalyses.map(a => ({
-        rawLocation: a.raw,
-        country: a.country,
-        createdAt: new Date()
-      })));
-
-      newAnalyses.forEach(a => {
-        resultsMap.set(a.raw, a.country);
-      });
-    }
-
-    return resultsMap;
+async function persistLocationAnalysis(input: LocationBatchResult): Promise<LocationAnalysis | null> {
+  const id = createRecordId();
+  const createdAt = new Date();
+  const sourceEjson = stringifySourceEjson({
+    _id: id,
+    rawLocation: input.raw,
+    country: input.country,
+    createdAt,
   });
+  const inserted = await query<Record<string, unknown>>(
+    `INSERT INTO public.location_analyses
+       (id, raw_location, country, created_at, source_ejson)
+     VALUES ($1, $2, $3, $4, $5::jsonb)
+     ON CONFLICT (raw_location) DO NOTHING
+     RETURNING ${locationProjection()}`,
+    [id, input.raw, input.country, createdAt, sourceEjson]
+  );
+  const row = inserted.rows[0] ?? (await query<Record<string, unknown>>(
+    `SELECT ${locationProjection()} FROM public.location_analyses WHERE raw_location = $1 LIMIT 1`,
+    [input.raw]
+  )).rows[0];
+  return row ? mapLocationAnalysisRow(row) : null;
 }
 
 interface BatchAnalysisResult {
@@ -159,21 +185,31 @@ Réponds UNIQUEMENT avec ce JSON exact :
 }`;
 
   try {
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],
       response_format: { type: "json_object" },
     });
-
-    const content = response.choices[0].message.content;
+    const content = response.choices[0]?.message.content;
     if (!content) return [];
-
-    const parsed = JSON.parse(content);
-    return (parsed.results || []) as BatchAnalysisResult[];
+    const parsed: unknown = JSON.parse(content);
+    if (typeof parsed !== "object" || parsed === null || !("results" in parsed) || !Array.isArray(parsed.results)) {
+      return [];
+    }
+    return parsed.results.filter(isBatchAnalysisResult);
   } catch (error) {
-    console.error("AI Batch Analysis error:", error);
+    console.error("AI Batch Analysis failed.", cacheErrorName(error));
     return [];
   }
+}
+
+function isBatchAnalysisResult(value: unknown): value is BatchAnalysisResult {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const result = value as Record<string, unknown>;
+  return typeof result.company === "string" &&
+    typeof result.isPlatformOrAgency === "boolean" &&
+    typeof result.type === "string" &&
+    typeof result.reason === "string";
 }
 
 interface LocationBatchResult {
@@ -200,24 +236,34 @@ Réponds UNIQUEMENT avec ce JSON exact :
 }`;
 
   try {
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],
       response_format: { type: "json_object" },
     });
-
-    const content = response.choices[0].message.content;
+    const content = response.choices[0]?.message.content;
     if (!content) return [];
-
-    const parsed = JSON.parse(content);
-    return (parsed.results || []) as LocationBatchResult[];
+    const parsed: unknown = JSON.parse(content);
+    if (typeof parsed !== "object" || parsed === null || !("results" in parsed) || !Array.isArray(parsed.results)) {
+      return [];
+    }
+    return parsed.results.filter(isLocationBatchResult);
   } catch (error) {
-    console.error("AI Location Batch Error:", error);
+    console.error("AI Location Analysis failed.", cacheErrorName(error));
     return [];
   }
 }
 
-export async function analyzeJobAuthor(title: string, company: string) {
+function isLocationBatchResult(value: unknown): value is LocationBatchResult {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const result = value as Record<string, unknown>;
+  return typeof result.raw === "string" && typeof result.country === "string";
+}
+
+export async function analyzeJobAuthor(
+  title: string,
+  company: string
+): Promise<Omit<AIAnalysis, "createdAt">> {
   const prompt = `Analyses cette offre d'emploi et détermine si l'auteur est une entreprise finale ou un intermédiaire (ESN, Cabinet de recrutement, Plateforme).
   
   Titre: ${title}
@@ -231,23 +277,30 @@ export async function analyzeJobAuthor(title: string, company: string) {
   }`;
 
   try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini", // Économique et rapide pour ce genre d'analyse
+    const response = await getOpenAI().chat.completions.create({
+      model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompt }],
       response_format: { type: "json_object" },
     });
-
-    const content = response.choices[0].message.content;
+    const content = response.choices[0]?.message.content;
     if (!content) throw new Error("Empty response from OpenAI");
-
-    return JSON.parse(content);
+    const parsed: unknown = JSON.parse(content);
+    if (typeof parsed !== "object" || parsed === null) throw new TypeError("Invalid AI response.");
+    const result = parsed as Record<string, unknown>;
+    if (typeof result.isPlatformOrAgency !== "boolean" || typeof result.type !== "string" || typeof result.reason !== "string") {
+      throw new TypeError("Invalid AI response.");
+    }
+    return {
+      isPlatformOrAgency: result.isPlatformOrAgency,
+      type: result.type,
+      reason: result.reason,
+    };
   } catch (error) {
-    console.error("AI Analysis error:", error);
-    // Fallback en cas d'erreur
+    console.error("AI Analysis failed.", cacheErrorName(error));
     return {
       isPlatformOrAgency: false,
       type: "Analyse impossible",
-      reason: "L'IA n'a pas pu répondre."
+      reason: "L'IA n'a pas pu répondre.",
     };
   }
 }

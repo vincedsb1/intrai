@@ -76,9 +76,42 @@ describe("rules.engine — createdAt", () => {
       expect(evaluateRule(job, rule)).toBe(true);
     });
 
+    it("uses the supplied reference instant for millisecond boundaries", () => {
+      const referenceInstant = new Date("2026-06-16T12:00:00.000Z");
+      const rule: SmartRule = {
+        id: "rule1",
+        name: "Anti-Oldies",
+        enabled: true,
+        conditions: [
+          {
+            id: "cond1",
+            field: "createdAt",
+            operator: "olderThan",
+            value: 7,
+          },
+        ],
+        action: "FILTER",
+      };
+
+      expect(
+        evaluateRule(
+          { createdAt: new Date(referenceInstant.getTime() - 6 * 86_400_000 - 1) },
+          rule,
+          referenceInstant
+        )
+      ).toBe(true);
+      expect(
+        evaluateRule(
+          { createdAt: new Date(referenceInstant.getTime() - 6 * 86_400_000) },
+          rule,
+          referenceInstant
+        )
+      ).toBe(false);
+    });
+
     it("should not match if createdAt is null", () => {
       const job: Partial<Job> = {
-        createdAt: null as any,
+        createdAt: null as unknown as Date,
       };
       const rule: SmartRule = {
         id: "rule1",
